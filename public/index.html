@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Disaster Alert & Rescue Coordinator Dashboard</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Leaflet CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <!-- Google Fonts Inter -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .glass { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); }
+    .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.06); }
+    .custom-sos-icon {
+      background: #ef4444;
+      border: 3px solid #ffffff;
+      border-radius: 50%;
+      box-shadow: 0 0 15px rgba(239, 68, 68, 0.9);
+    }
+    .custom-vol-icon {
+      background: #10b981;
+      border: 3px solid #ffffff;
+      border-radius: 50%;
+      box-shadow: 0 0 15px rgba(16, 185, 129, 0.9);
+    }
+    /* Leaflet layer control dark styling */
+    .leaflet-control-layers {
+      background: rgba(15, 23, 42, 0.9) !important;
+      color: #e2e8f0 !important;
+      border: 1px solid rgba(255, 255, 255, 0.15) !important;
+      border-radius: 8px !important;
+      font-size: 11px !important;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5) !important;
+    }
+    .leaflet-control-layers-toggle {
+      filter: invert(1);
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col">
+
+  <!-- Top Navigation & Alert Banner -->
+  <header class="glass sticky top-0 z-50 border-b border-slate-800 px-6 py-3">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-red-600/20 border border-red-500/40 flex items-center justify-center text-red-500 text-xl font-bold">
+          <i class="fa-solid fa-tower-broadcast"></i>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
+            Disaster Alert & Rescue Coordinator
+            <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+              <span class="w-1.5 h-1.5 inline-block rounded-full bg-emerald-400 animate-ping mr-1"></span>MySQL Spatial Active
+            </span>
+          </h1>
+          <p class="text-xs text-slate-400">Crowdsourced Disaster Management & Real-time Aid Dispatch</p>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex items-center space-x-3">
+        <button onclick="openSosModal()" class="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg text-sm font-semibold transition flex items-center gap-2 shadow-lg shadow-red-600/30">
+          <i class="fa-solid fa-triangle-exclamation"></i> Send SOS Request
+        </button>
+        <button onclick="openDispatchModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-semibold transition flex items-center gap-2 shadow-lg shadow-indigo-600/30">
+          <i class="fa-solid fa-boxes-packing"></i> Dispatch Aid (ACID)
+        </button>
+        <button onclick="refreshAllData()" class="p-2 hover:bg-slate-800 text-slate-300 hover:text-white rounded-lg transition" title="Refresh Data">
+          <i class="fa-solid fa-rotate"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Live Alerts Bar -->
+    <div id="alertsBanner" class="mt-2.5 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-1.5 text-xs text-amber-300 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <span class="bg-amber-500 text-slate-950 font-black px-1.5 py-0.5 rounded text-[10px] uppercase tracking-wider">Warning</span>
+        <span id="alertHeadline"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Syncing live weather & USGS earthquake alerts...</span>
+      </div>
+      <span class="text-[11px] text-amber-400/70" id="alertSource">Feed: USGS API</span>
+    </div>
+  </header>
+
+  <!-- Main Grid Layout -->
+  <main class="flex-1 grid grid-cols-12 gap-4 p-4">
+    
+    <!-- Left Column: SOS Queue & Radar (3 cols) -->
+    <div class="col-span-12 lg:col-span-3 flex flex-col space-y-4">
+      
+      <!-- Stats Overview -->
+      <div class="grid grid-cols-2 gap-3">
+        <div class="glass-card p-3 rounded-xl border border-slate-800">
+          <div class="text-xs text-slate-400">Active SOS</div>
+          <div class="text-2xl font-black text-red-400 mt-0.5" id="totalSosCount">0</div>
+          <div class="text-[10px] text-slate-500 mt-1">Pending Rescue</div>
+        </div>
+        <div class="glass-card p-3 rounded-xl border border-slate-800">
+          <div class="text-xs text-slate-400">Available Fleet</div>
+          <div class="text-2xl font-black text-emerald-400 mt-0.5" id="totalVolCount">0</div>
+          <div class="text-[10px] text-slate-500 mt-1">Ready to Deploy</div>
+        </div>
+      </div>
+
+      <!-- Emergency SOS Requests List -->
+      <div class="glass rounded-xl flex-1 flex flex-col overflow-hidden border border-slate-800">
+        <div class="p-3 border-b border-slate-800/80 flex items-center justify-between">
+          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+            <i class="fa-solid fa-tower-broadcast text-red-400"></i> Emergency SOS List
+          </h2>
+          <span class="text-[11px] text-slate-500">Click to locate</span>
+        </div>
+        <div id="sosListContainer" class="p-3 space-y-2.5 overflow-y-auto max-h-[360px]">
+          <div class="text-center py-8 text-xs text-slate-500">
+            <i class="fa-solid fa-circle-notch fa-spin text-slate-400 text-lg mb-2"></i><br>Loading SOS queue...
+          </div>
+        </div>
+      </div>
+
+      <!-- Nearest Volunteers for Selected SOS -->
+      <div class="glass rounded-xl p-3 border border-slate-800">
+        <div class="flex items-center justify-between mb-2">
+          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+            <i class="fa-solid fa-satellite-dish text-cyan-400"></i> Nearest Volunteers (5km)
+          </h2>
+          <span id="selectedSosBadge" class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded">SOS #1</span>
+        </div>
+        <div id="nearestVolunteersList" class="space-y-2 max-h-[220px] overflow-y-auto">
+          <div class="text-center py-4 text-xs text-slate-500">Select an SOS to compute ST_Distance_Sphere nearest volunteers.</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Center Column: Interactive Leaflet Map (6 cols) -->
+    <div class="col-span-12 lg:col-span-6 flex flex-col space-y-3">
+      <div class="glass rounded-xl p-2 flex-1 flex flex-col border border-slate-800 overflow-hidden relative min-h-[500px]">
+        
+        <!-- Map Controls Header -->
+        <div class="absolute top-4 left-4 z-[1000] glass px-3 py-1.5 rounded-lg text-xs flex items-center gap-3 border border-slate-700 shadow-xl">
+          <span class="flex items-center gap-1.5 text-red-400 font-medium">
+            <span class="w-2.5 h-2.5 rounded-full bg-red-500 inline-block shadow"></span> SOS Incident
+          </span>
+          <span class="flex items-center gap-1.5 text-emerald-400 font-medium">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block shadow"></span> Active Volunteer
+          </span>
+          <span class="flex items-center gap-1.5 text-cyan-400 font-medium">
+            <span class="w-2.5 h-2.5 rounded-full bg-cyan-500 inline-block shadow"></span> 5km Perimeter
+          </span>
+        </div>
+
+        <div class="absolute top-4 right-14 z-[1000] glass px-2.5 py-1.5 rounded-lg text-xs border border-slate-700 shadow-xl">
+          <span class="text-slate-300 text-[11px]"><i class="fa-solid fa-crosshairs mr-1 text-cyan-400"></i> Click map to pick GPS</span>
+        </div>
+
+        <!-- The Leaflet Map Element -->
+        <div id="map" class="w-full h-full rounded-lg z-0"></div>
+      </div>
+    </div>
+
+    <!-- Right Column: Relief Inventory & Dispatch Audit (3 cols) -->
+    <div class="col-span-12 lg:col-span-3 flex flex-col space-y-4">
+      
+      <!-- Relief Inventory Card -->
+      <div class="glass rounded-xl flex-1 flex flex-col overflow-hidden border border-slate-800">
+        <div class="p-3 border-b border-slate-800/80 flex items-center justify-between">
+          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+            <i class="fa-solid fa-boxes-stacked text-amber-400"></i> Relief Inventory Stock
+          </h2>
+          <button onclick="fetchInventory()" class="text-xs text-slate-400 hover:text-white" title="Refresh Inventory">
+            <i class="fa-solid fa-arrow-rotate-right"></i>
+          </button>
+        </div>
+        <div id="inventoryContainer" class="p-3 space-y-2.5 overflow-y-auto max-h-[320px]">
+          <div class="text-center py-6 text-xs text-slate-500">Loading inventory stock...</div>
+        </div>
+      </div>
+
+      <!-- Recent Dispatches (ACID Audit Log) -->
+      <div class="glass rounded-xl flex-1 flex flex-col overflow-hidden border border-slate-800">
+        <div class="p-3 border-b border-slate-800/80 flex items-center justify-between">
+          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+            <i class="fa-solid fa-clock-rotate-left text-indigo-400"></i> ACID Dispatch Audit Log
+          </h2>
+          <span class="text-[10px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">Zero Deficit</span>
+        </div>
+        <div id="dispatchesContainer" class="p-3 space-y-2 overflow-y-auto max-h-[280px]">
+          <div class="text-center py-6 text-xs text-slate-500">Loading dispatch history...</div>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Modal 1: Report New SOS -->
+  <div id="sosModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[2000] hidden flex items-center justify-center p-4">
+    <div class="glass-card max-w-md w-full rounded-2xl p-6 border border-slate-700 shadow-2xl">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-base font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-triangle-exclamation text-red-500"></i> Submit Emergency SOS
+        </h3>
+        <button onclick="closeSosModal()" class="text-slate-400 hover:text-white text-lg">&times;</button>
+      </div>
+
+      <form id="sosForm" onsubmit="handleSosSubmit(event)" class="space-y-3.5 text-xs">
+        <div>
+          <label class="block text-slate-300 font-medium mb-1">Victim / User ID</label>
+          <input type="number" id="sosUserId" value="1" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100 focus:outline-none focus:border-red-500">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-slate-300 font-medium mb-1">Latitude</label>
+            <input type="number" step="any" id="sosLat" value="24.8949" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100 focus:outline-none focus:border-red-500">
+          </div>
+          <div>
+            <label class="block text-slate-300 font-medium mb-1">Longitude</label>
+            <input type="number" step="any" id="sosLng" value="91.8687" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100 focus:outline-none focus:border-red-500">
+          </div>
+        </div>
+        <div class="flex items-center justify-between text-[11px] text-slate-400">
+          <span>Tip: Click anywhere on the map to auto-fill GPS</span>
+          <button type="button" onclick="useCurrentLocation()" class="text-cyan-400 hover:underline">Use Device GPS</button>
+        </div>
+        <div>
+          <label class="block text-slate-300 font-medium mb-1">Urgency Level</label>
+          <select id="sosUrgency" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100 focus:outline-none focus:border-red-500">
+            <option value="CRITICAL">CRITICAL (Life Threatening)</option>
+            <option value="HIGH">HIGH (Severe Danger)</option>
+            <option value="MEDIUM" selected>MEDIUM (Moderate Need)</option>
+            <option value="LOW">LOW (Mild Aid Request)</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-slate-300 font-medium mb-1">Emergency Details</label>
+          <textarea id="sosDetails" rows="3" required placeholder="Describe situation, trapped count, medical needs..." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100 focus:outline-none focus:border-red-500">Flood water rising rapidly. 4 elderly family members trapped.</textarea>
+        </div>
+        <div class="pt-2 flex justify-end gap-2">
+          <button type="button" onclick="closeSosModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg">Cancel</button>
+          <button type="submit" id="btnSubmitSos" class="px-5 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg font-semibold shadow-lg shadow-red-600/30">Submit SOS</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 2: ACID Relief Dispatch -->
+  <div id="dispatchModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[2000] hidden flex items-center justify-center p-4">
+    <div class="glass-card max-w-md w-full rounded-2xl p-6 border border-slate-700 shadow-2xl">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h3 class="text-base font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-boxes-packing text-indigo-400"></i> Dispatch Aid (ACID Transaction)
+          </h3>
+          <p class="text-[11px] text-slate-400 mt-0.5">Executes row lock & atomic stock balance deduction</p>
+        </div>
+        <button onclick="closeDispatchModal()" class="text-slate-400 hover:text-white text-lg">&times;</button>
+      </div>
+
+      <form id="dispatchForm" onsubmit="handleDispatchSubmit(event)" class="space-y-3.5 text-xs">
+        <div>
+          <label class="block text-slate-300 font-medium mb-1">Assign to Volunteer / Rescue Team</label>
+          <select id="dispatchTeamId" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100 focus:outline-none focus:border-indigo-500">
+            <!-- Dynamically populated -->
+          </select>
+        </div>
+        <div>
+          <label class="block text-slate-300 font-medium mb-1">Select Relief Item</label>
+          <select id="dispatchItemId" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100 focus:outline-none focus:border-indigo-500">
+            <!-- Dynamically populated -->
+          </select>
+        </div>
+        <div>
+          <label class="block text-slate-300 font-medium mb-1">Quantity to Deduct</label>
+          <input type="number" min="1" id="dispatchQty" value="10" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100 focus:outline-none focus:border-indigo-500">
+        </div>
+        <div id="dispatchAlertMsg" class="hidden p-2.5 rounded-lg text-[11px]"></div>
+        <div class="pt-2 flex justify-end gap-2">
+          <button type="button" onclick="closeDispatchModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg">Cancel</button>
+          <button type="submit" id="btnSubmitDispatch" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-semibold shadow-lg shadow-indigo-600/30">Commit Dispatch</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- JavaScript Application Logic -->
+  <script>
+    const API_BASE = '';
+    let map, searchCircle, currentMarkers = [];
+    let allSos = [], allVolunteers = [], allInventory = [];
+    let selectedSosId = null;
+
+    // Initialize Map with 100% Free, High Quality Tile Layers (No API Key Required)
+    function initMap() {
+      // Center around Sylhet Sadar flood coordinate (24.8949, 91.8687)
+      map = L.map('map', { zoomControl: false }).setView([24.8949, 91.8687], 13);
+      L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+      // Layer 1: Clean Dark Canvas (Esri Dark Gray - Free, No API key, No watermark)
+      const esriDark = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+        attribution: '&copy; Esri, HERE, Garmin',
+        maxZoom: 16
+      });
+
+      const esriLabels = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 16
+      });
+
+      const darkGroup = L.layerGroup([esriDark, esriLabels]);
+
+      // Layer 2: OpenStreetMap Standard (Full roads, rivers, landmarks - Free)
+      const osmStreet = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors',
+        maxZoom: 19
+      });
+
+      // Layer 3: Esri Satellite Imagery
+      const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: '&copy; Esri, Maxar, Earthstar',
+        maxZoom: 18
+      });
+
+      // Add default dark layer
+      darkGroup.addTo(map);
+
+      // Layer Switcher Control in top right
+      const baseMaps = {
+        "🌑 Dark Theme": darkGroup,
+        "🗺️ Street Map": osmStreet,
+        "🛰️ Satellite": satellite
+      };
+      L.control.layers(baseMaps, null, { position: 'topright' }).addTo(map);
+
+      // Click on map to fill SOS coords
+      map.on('click', (e) => {
+        document.getElementById('sosLat').value = e.latlng.lat.toFixed(6);
+        document.getElementById('sosLng').value = e.latlng.lng.toFixed(6);
+        openSosModal();
+      });
+    }
+
+    // Load All Data
+    async function refreshAllData() {
+      await Promise.all([
+        fetchSosList(),
+        fetchVolunteers(),
+        fetchInventory(),
+        fetchDispatches(),
+        fetchAlerts()
+      ]);
+    }
+
+    // 1. Fetch SOS List
+    async function fetchSosList() {
+      try {
+        const res = await fetch(`${API_BASE}/api/sos`);
+        const json = await res.json();
+        if (json.success) {
+          allSos = json.data;
+          document.getElementById('totalSosCount').innerText = allSos.filter(s => s.status !== 'RESOLVED').length;
+          renderSosList();
+          renderMapMarkers();
+          if (allSos.length > 0 && !selectedSosId) {
+            selectSos(allSos[0].id);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load SOS:', err);
+      }
+    }
+
+    // Render SOS List Cards
+    function renderSosList() {
+      const container = document.getElementById('sosListContainer');
+      if (allSos.length === 0) {
+        container.innerHTML = '<div class="text-center py-6 text-xs text-slate-500">No active SOS requests found.</div>';
+        return;
+      }
+
+      container.innerHTML = allSos.map(sos => {
+        const urgencyColor = {
+          CRITICAL: 'bg-red-500/20 text-red-400 border-red-500/30',
+          HIGH: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+          MEDIUM: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+          LOW: 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+        }[sos.urgency_level] || 'bg-slate-700 text-slate-300';
+
+        const statusColor = {
+          PENDING: 'bg-rose-500 text-white',
+          ASSIGNED: 'bg-cyan-500 text-slate-950 font-bold',
+          IN_PROGRESS: 'bg-amber-500 text-slate-950 font-bold',
+          RESOLVED: 'bg-emerald-500 text-white'
+        }[sos.status] || 'bg-slate-700 text-white';
+
+        const isSelected = selectedSosId === sos.id ? 'ring-2 ring-cyan-500 bg-slate-800' : 'glass-card hover:bg-slate-800/80';
+
+        return `
+          <div onclick="selectSos(${sos.id})" class="p-3 rounded-xl border border-slate-700/60 cursor-pointer transition ${isSelected}">
+            <div class="flex items-center justify-between mb-1.5">
+              <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                <i class="fa-solid fa-user text-slate-400 text-[10px]"></i> ${sos.victim_name || 'Victim #' + sos.user_id}
+              </span>
+              <span class="text-[10px] px-2 py-0.5 rounded-full border ${urgencyColor} font-semibold">${sos.urgency_level}</span>
+            </div>
+            <p class="text-[11px] text-slate-300 line-clamp-2 mb-2 leading-relaxed">${sos.details || 'No details provided.'}</p>
+            <div class="flex items-center justify-between text-[10px] text-slate-400">
+              <span><i class="fa-solid fa-location-dot text-red-400 mr-1"></i>${parseFloat(sos.latitude).toFixed(4)}, ${parseFloat(sos.longitude).toFixed(4)}</span>
+              <span class="px-1.5 py-0.5 rounded text-[9px] uppercase ${statusColor}">${sos.status}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Select SOS & calculate nearest volunteers
+    async function selectSos(id) {
+      selectedSosId = id;
+      renderSosList();
+      document.getElementById('selectedSosBadge').innerText = `SOS #${id}`;
+      
+      const target = allSos.find(s => s.id === id);
+      if (target && map) {
+        map.flyTo([target.latitude, target.longitude], 14, { duration: 1.2 });
+      }
+
+      // Draw 5km radius circle
+      if (searchCircle) map.removeLayer(searchCircle);
+      if (target) {
+        searchCircle = L.circle([target.latitude, target.longitude], {
+          radius: 5000,
+          color: '#06b6d4',
+          fillColor: '#06b6d4',
+          fillOpacity: 0.08,
+          weight: 1.5,
+          dashArray: '4, 8'
+        }).addTo(map);
+      }
+
+      // Fetch ST_Distance_Sphere nearest volunteers
+      try {
+        const res = await fetch(`${API_BASE}/api/sos/${id}/nearest-volunteers?radius=5000`);
+        const json = await res.json();
+        renderNearestVolunteers(json.volunteers || []);
+      } catch (err) {
+        console.error('Failed to compute distance:', err);
+      }
+    }
+
+    // Render Nearest Volunteers in Radar list
+    function renderNearestVolunteers(vols) {
+      const container = document.getElementById('nearestVolunteersList');
+      if (vols.length === 0) {
+        container.innerHTML = '<div class="text-center py-4 text-xs text-amber-400/80">No available volunteers found within 5km perimeter.</div>';
+        return;
+      }
+
+      container.innerHTML = vols.map(v => `
+        <div class="glass-card p-2.5 rounded-lg border border-slate-700/60 flex items-center justify-between text-xs">
+          <div>
+            <div class="font-bold text-white flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-emerald-400"></span> ${v.name}
+            </div>
+            <div class="text-[10px] text-slate-400 mt-0.5">
+              <i class="fa-solid fa-phone text-slate-500 mr-1"></i>${v.phone}
+            </div>
+          </div>
+          <div class="text-right">
+            <span class="text-xs font-black text-cyan-400">${v.distance_meters < 1000 ? v.distance_meters + 'm' : v.distance_km + 'km'}</span>
+            <div class="mt-1">
+              <button onclick="assignVolunteer(${selectedSosId}, ${v.volunteer_id})" class="px-2 py-0.5 bg-emerald-600/30 hover:bg-emerald-600 text-emerald-300 hover:text-white rounded text-[10px] border border-emerald-500/40 transition">
+                Assign
+              </button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Assign Volunteer to SOS
+    async function assignVolunteer(sosId, volId) {
+      try {
+        const res = await fetch(`${API_BASE}/api/sos/${sosId}/assign`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ volunteer_id: volId })
+        });
+        const json = await res.json();
+        if (json.success) {
+          alert(`Volunteer #${volId} successfully assigned!`);
+          refreshAllData();
+        } else {
+          alert(`Failed: ${json.message}`);
+        }
+      } catch (err) {
+        alert('Server error while assigning volunteer.');
+      }
+    }
+
+    // 2. Fetch Volunteers Fleet
+    async function fetchVolunteers() {
+      try {
+        const res = await fetch(`${API_BASE}/api/volunteers`);
+        const json = await res.json();
+        if (json.success) {
+          allVolunteers = json.data;
+          document.getElementById('totalVolCount').innerText = allVolunteers.filter(v => v.status === 'AVAILABLE').length;
+          renderMapMarkers();
+          populateDispatchSelects();
+        }
+      } catch (err) {
+        console.error('Failed to load volunteers:', err);
+      }
+    }
+
+    // 3. Render Markers on Leaflet Map
+    function renderMapMarkers() {
+      currentMarkers.forEach(m => map.removeLayer(m));
+      currentMarkers = [];
+
+      // Render SOS Markers (Red Pins)
+      allSos.forEach(sos => {
+        if (!sos.latitude || !sos.longitude) return;
+        const icon = L.divIcon({
+          className: 'custom-sos-icon',
+          iconSize: [16, 16],
+          iconAnchor: [8, 8]
+        });
+        const marker = L.marker([sos.latitude, sos.longitude], { icon })
+          .addTo(map)
+          .bindPopup(`
+            <div class="text-slate-900 text-xs p-1">
+              <div class="font-bold text-red-600 flex items-center gap-1">
+                <i class="fa-solid fa-triangle-exclamation"></i> SOS #${sos.id} (${sos.urgency_level})
+              </div>
+              <div class="font-semibold text-slate-800 mt-1">${sos.victim_name || 'Victim'}</div>
+              <div class="text-slate-600 text-[11px] mt-0.5">${sos.details}</div>
+              <div class="mt-2 pt-1 border-t border-slate-200 text-[10px] text-slate-500">Status: <b>${sos.status}</b></div>
+            </div>
+          `);
+        marker.on('click', () => selectSos(sos.id));
+        currentMarkers.push(marker);
+      });
+
+      // Render Volunteer Markers (Green Pins)
+      allVolunteers.forEach(v => {
+        if (!v.latitude || !v.longitude) return;
+        const icon = L.divIcon({
+          className: 'custom-vol-icon',
+          iconSize: [14, 14],
+          iconAnchor: [7, 7]
+        });
+        const marker = L.marker([v.latitude, v.longitude], { icon })
+          .addTo(map)
+          .bindPopup(`
+            <div class="text-slate-900 text-xs p-1">
+              <div class="font-bold text-emerald-600 flex items-center gap-1">
+                <i class="fa-solid fa-shield-heart"></i> Volunteer #${v.id}
+              </div>
+              <div class="font-semibold text-slate-800 mt-1">${v.name}</div>
+              <div class="text-slate-600 text-[11px]">${v.phone}</div>
+              <div class="mt-1 text-[10px] text-slate-500">Status: <b>${v.status}</b></div>
+            </div>
+          `);
+        currentMarkers.push(marker);
+      });
+    }
+
+    // 4. Fetch Relief Inventory
+    async function fetchInventory() {
+      try {
+        const res = await fetch(`${API_BASE}/api/relief/inventory`);
+        const json = await res.json();
+        if (json.success) {
+          allInventory = json.data;
+          renderInventory();
+          populateDispatchSelects();
+        }
+      } catch (err) {
+        console.error('Failed to load inventory:', err);
+      }
+    }
+
+    function renderInventory() {
+      const container = document.getElementById('inventoryContainer');
+      if (allInventory.length === 0) {
+        container.innerHTML = '<div class="text-center py-4 text-xs text-slate-500">No inventory stocked.</div>';
+        return;
+      }
+
+      container.innerHTML = allInventory.map(item => `
+        <div class="glass-card p-2.5 rounded-xl border border-slate-700/60 text-xs">
+          <div class="flex items-center justify-between mb-1">
+            <span class="font-bold text-slate-200">${item.item_name}</span>
+            <span class="font-black text-amber-400 text-sm">${item.quantity}</span>
+          </div>
+          <div class="flex items-center justify-between text-[10px] text-slate-400">
+            <span><i class="fa-solid fa-warehouse text-slate-500 mr-1"></i>${item.warehouse_name}</span>
+            <span class="text-emerald-400 font-semibold">${item.quantity > 50 ? 'In Stock' : 'Low Stock'}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // 5. Fetch Dispatches (Audit Log)
+    async function fetchDispatches() {
+      try {
+        const res = await fetch(`${API_BASE}/api/relief/dispatches`);
+        const json = await res.json();
+        if (json.success) {
+          renderDispatches(json.data || []);
+        }
+      } catch (err) {
+        console.error('Failed to load dispatches:', err);
+      }
+    }
+
+    function renderDispatches(dispatches) {
+      const container = document.getElementById('dispatchesContainer');
+      if (dispatches.length === 0) {
+        container.innerHTML = '<div class="text-center py-4 text-xs text-slate-500">No aid dispatched yet.</div>';
+        return;
+      }
+
+      container.innerHTML = dispatches.slice(0, 10).map(d => `
+        <div class="p-2 rounded-lg bg-slate-900/60 border border-slate-800 text-[11px]">
+          <div class="flex items-center justify-between text-slate-200 font-medium">
+            <span>${d.item_name}</span>
+            <span class="text-indigo-400 font-bold">-${d.dispatched_qty} pcs</span>
+          </div>
+          <div class="flex items-center justify-between text-[10px] text-slate-500 mt-1">
+            <span>Team: <b>${d.volunteer_name}</b></span>
+            <span>${new Date(d.dispatch_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // 6. Fetch Disaster Alerts
+    async function fetchAlerts() {
+      try {
+        const res = await fetch(`${API_BASE}/api/alerts`);
+        const json = await res.json();
+        if (json.success && json.data.length > 0) {
+          const topAlert = json.data[0];
+          document.getElementById('alertHeadline').innerText = `${topAlert.alert_title} (${topAlert.severity})`;
+          document.getElementById('alertSource').innerText = `Source: ${topAlert.source_api}`;
+        }
+      } catch (err) {
+        console.error('Failed to load alerts:', err);
+      }
+    }
+
+    // Modals Handling
+    function openSosModal() { document.getElementById('sosModal').classList.remove('hidden'); }
+    function closeSosModal() { document.getElementById('sosModal').classList.add('hidden'); }
+
+    function openDispatchModal() {
+      populateDispatchSelects();
+      document.getElementById('dispatchModal').classList.remove('hidden');
+    }
+    function closeDispatchModal() {
+      document.getElementById('dispatchModal').classList.add('hidden');
+      document.getElementById('dispatchAlertMsg').classList.add('hidden');
+    }
+
+    function populateDispatchSelects() {
+      const teamSelect = document.getElementById('dispatchTeamId');
+      const itemSelect = document.getElementById('dispatchItemId');
+      if (teamSelect && allVolunteers.length > 0) {
+        teamSelect.innerHTML = allVolunteers.map(v => `<option value="${v.id}">Team #${v.id}: ${v.name} (${v.status})</option>`).join('');
+      }
+      if (itemSelect && allInventory.length > 0) {
+        itemSelect.innerHTML = allInventory.map(i => `<option value="${i.id}">${i.item_name} (Avail: ${i.quantity})</option>`).join('');
+      }
+    }
+
+    // Submit SOS Request
+    async function handleSosSubmit(e) {
+      e.preventDefault();
+      const btn = document.getElementById('btnSubmitSos');
+      btn.disabled = true;
+      btn.innerText = 'Transmitting...';
+
+      const payload = {
+        user_id: parseInt(document.getElementById('sosUserId').value, 10),
+        latitude: parseFloat(document.getElementById('sosLat').value),
+        longitude: parseFloat(document.getElementById('sosLng').value),
+        urgency_level: document.getElementById('sosUrgency').value,
+        details: document.getElementById('sosDetails').value
+      };
+
+      try {
+        const res = await fetch(`${API_BASE}/api/sos`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const json = await res.json();
+        if (json.success) {
+          closeSosModal();
+          await refreshAllData();
+          selectSos(json.data.id);
+        } else {
+          alert('Failed: ' + json.message);
+        }
+      } catch (err) {
+        alert('Server connection error.');
+      } finally {
+        btn.disabled = false;
+        btn.innerText = 'Submit SOS';
+      }
+    }
+
+    // Submit ACID Relief Dispatch
+    async function handleDispatchSubmit(e) {
+      e.preventDefault();
+      const btn = document.getElementById('btnSubmitDispatch');
+      const alertDiv = document.getElementById('dispatchAlertMsg');
+      btn.disabled = true;
+      btn.innerText = 'Processing Transaction...';
+
+      const payload = {
+        rescue_team_id: parseInt(document.getElementById('dispatchTeamId').value, 10),
+        item_id: parseInt(document.getElementById('dispatchItemId').value, 10),
+        quantity: parseInt(document.getElementById('dispatchQty').value, 10)
+      };
+
+      try {
+        const res = await fetch(`${API_BASE}/api/relief/dispatch`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const json = await res.json();
+        alertDiv.classList.remove('hidden');
+        if (json.success) {
+          alertDiv.className = 'p-2.5 rounded-lg text-[11px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
+          alertDiv.innerText = `Transaction Committed: ${json.message}`;
+          setTimeout(() => {
+            closeDispatchModal();
+            fetchInventory();
+            fetchDispatches();
+          }, 1200);
+        } else {
+          alertDiv.className = 'p-2.5 rounded-lg text-[11px] bg-rose-500/20 text-rose-300 border border-rose-500/30';
+          alertDiv.innerText = `Rollback: ${json.message}`;
+        }
+      } catch (err) {
+        alertDiv.className = 'p-2.5 rounded-lg text-[11px] bg-rose-500/20 text-rose-300 border border-rose-500/30';
+        alertDiv.innerText = 'Failed to connect to backend.';
+        alertDiv.classList.remove('hidden');
+      } finally {
+        btn.disabled = false;
+        btn.innerText = 'Commit Dispatch';
+      }
+    }
+
+    // Device GPS
+    function useCurrentLocation() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(pos => {
+          document.getElementById('sosLat').value = pos.coords.latitude.toFixed(6);
+          document.getElementById('sosLng').value = pos.coords.longitude.toFixed(6);
+        }, () => alert('Unable to retrieve GPS coordinates.'));
+      } else {
+        alert('Geolocation is not supported by your browser.');
+      }
+    }
+
+    // Startup
+    window.addEventListener('DOMContentLoaded', () => {
+      initMap();
+      refreshAllData();
+    });
+  </script>
+</body>
+</html>
