@@ -84,7 +84,18 @@ app.use('/api/relief', reliefRoutes);
 app.use('/api/volunteers', volunteerRoutes);
 app.use('/api/alerts', alertRoutes);
 
-// 4. Fallback to index.html for Frontend UI
+// 4. Distinct Web Page Routes (Uncluttered, Multi-Page Architecture)
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, '../public/index.html')));
+app.get('/radar', (req, res) => res.sendFile(path.join(__dirname, '../public/index.html')));
+app.get('/shelters', (req, res) => res.sendFile(path.join(__dirname, '../public/shelters.html')));
+app.get('/logistics', (req, res) => res.sendFile(path.join(__dirname, '../public/logistics.html')));
+app.get('/volunteers', (req, res) => res.sendFile(path.join(__dirname, '../public/volunteers.html')));
+app.get('/fleet', (req, res) => res.sendFile(path.join(__dirname, '../public/volunteers.html')));
+app.get('/lab', (req, res) => res.sendFile(path.join(__dirname, '../public/lab.html')));
+app.get('/database', (req, res) => res.sendFile(path.join(__dirname, '../public/lab.html')));
+app.get('/alerts', (req, res) => res.sendFile(path.join(__dirname, '../public/alerts.html')));
+
+// Fallback route
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/index.html'));
 });

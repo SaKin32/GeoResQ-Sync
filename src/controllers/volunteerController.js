@@ -228,9 +228,72 @@ const completeRescueMission = async (req, res) => {
   }
 };
 
+/**
+ * 5. Register New Volunteer to Fleet
+ * POST /api/volunteers
+ */
+const createVolunteer = async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    const { name, email, phone, skills, vehicle_type, blood_group, latitude, longitude } = req.body;
+
+    if (!name || !phone) {
+      await connection.rollback();
+      return res.status(400).json({ success: false, message: 'Name and phone are required.' });
+    }
+
+    const lat = parseFloat(latitude) || 24.8949;
+    const lng = parseFloat(longitude) || 91.8687;
+    const volEmail = email || `vol_${Date.now()}@georesq.org`;
+
+    // 1. Create user account
+    const [userRes] = await connection.execute(
+      `INSERT INTO users (name, email, phone, role) VALUES (?, ?, ?, 'VOLUNTEER')
+       ON DUPLICATE KEY UPDATE name = VALUES(name), phone = VALUES(phone)`,
+      [name, volEmail, phone]
+    );
+
+    let userId = userRes.insertId;
+    if (!userId) {
+      const [u] = await connection.execute('SELECT id FROM users WHERE email = ?', [volEmail]);
+      userId = u[0]?.id;
+    }
+
+    // 2. Insert into volunteers table with POINT spatial location
+    const [volRes] = await connection.execute(
+      `INSERT INTO volunteers (user_id, status, skills, vehicle_type, blood_group, current_location)
+       VALUES (?, 'AVAILABLE', ?, ?, ?, POINT(?, ?))`,
+      [
+        userId,
+        skills || 'Flood Evacuation, First Aid',
+        vehicle_type || 'Rescue Inflatable Boat',
+        blood_group || 'O+',
+        lng,
+        lat
+      ]
+    );
+
+    await connection.commit();
+
+    return res.status(201).json({
+      success: true,
+      message: `Volunteer ${name} registered successfully into active rescue fleet.`,
+      volunteer_id: volRes.insertId
+    });
+  } catch (error) {
+    await connection.rollback();
+    console.error('Error creating volunteer:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  } finally {
+    connection.release();
+  }
+};
+
 module.exports = {
   updateVolunteerLocation,
   getAllVolunteers,
   updateVolunteerStatus,
-  completeRescueMission
+  completeRescueMission,
+  createVolunteer
 };

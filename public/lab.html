@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MySQL 8.0 Architecture Lab | GeoResQ-Sync</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome 6 Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #070b14;
+      font-family: 'Inter', sans-serif;
+      color: #e2e8f0;
+      overflow-x: hidden;
+    }
+
+    .glass-nav {
+      background: rgba(13, 21, 39, 0.95);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .glass-card {
+      background: rgba(22, 34, 56, 0.75);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .glass-card:hover {
+      border-color: rgba(56, 189, 248, 0.35);
+    }
+
+    .code-block {
+      background: #090e1a;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      line-height: 1.6;
+      color: #38bdf8;
+      overflow-x: auto;
+      padding: 1rem;
+    }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: rgba(13, 21, 39, 0.5); }
+    ::-webkit-scrollbar-thumb { background: rgba(100, 116, 139, 0.5); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.8); }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased selection:bg-cyan-500 selection:text-black">
+
+  <!-- ========================================================================= -->
+  <!-- TOP NAVIGATION HEADER (SHARED ACROSS ALL DEDICATED PAGES) -->
+  <!-- ========================================================================= -->
+  <header class="glass-nav sticky top-0 z-50 px-4 lg:px-6 py-2.5">
+    <div class="flex flex-col md:flex-row items-center justify-between gap-3">
+      
+      <!-- Brand & Project Title -->
+      <a href="/" class="flex items-center space-x-3 w-full md:w-auto">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-red-500/20 to-cyan-500/20 border border-slate-700 flex items-center justify-center text-cyan-400 text-base shadow-lg shadow-cyan-500/10 shrink-0">
+          <i class="fa-solid fa-satellite-dish"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-base font-black tracking-tight text-white flex items-center gap-1.5">
+              GeoResQ-Sync
+            </h1>
+            <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-400 border border-cyan-500/30">
+              MySQL 8.0 Lab
+            </span>
+          </div>
+          <p class="text-[10px] text-slate-400">Autonomous Disaster Management & ACID Aid Coordination</p>
+        </div>
+      </a>
+
+      <!-- CENTER: DEDICATED WEB PAGES NAVIGATION -->
+      <nav class="flex items-center bg-slate-900/90 p-1 rounded-xl border border-slate-800 text-xs w-full md:w-auto justify-center overflow-x-auto gap-1">
+        <a href="/" class="px-3.5 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 text-slate-400 hover:text-white transition">
+          <i class="fa-solid fa-map-location-dot"></i>
+          <span>1. Radar</span>
+        </a>
+
+        <a href="/shelters" class="px-3.5 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 text-slate-400 hover:text-white transition">
+          <i class="fa-solid fa-house-chimney-medical text-cyan-400"></i>
+          <span>2. Shelters</span>
+        </a>
+
+        <a href="/logistics" class="px-3.5 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 text-slate-400 hover:text-white transition">
+          <i class="fa-solid fa-boxes-packing text-indigo-400"></i>
+          <span>3. Logistics & Donations</span>
+        </a>
+
+        <a href="/volunteers" class="px-3.5 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 text-slate-400 hover:text-white transition">
+          <i class="fa-solid fa-shield-heart text-emerald-400"></i>
+          <span>4. Fleet</span>
+        </a>
+
+        <a href="/lab" class="px-3.5 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition bg-cyan-500 text-slate-950 shadow-md">
+          <i class="fa-solid fa-database"></i>
+          <span>5. MySQL Lab</span>
+        </a>
+
+        <a href="/alerts" class="px-3.5 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 text-slate-400 hover:text-white transition">
+          <i class="fa-solid fa-cloud-bolt text-amber-400"></i>
+          <span>6. Alerts</span>
+        </a>
+      </nav>
+
+      <!-- RIGHT: PRIMARY ACTIONS -->
+      <div class="flex items-center gap-2 w-full md:w-auto justify-end">
+        <a href="/api" target="_blank" class="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 border border-slate-700">
+          <i class="fa-solid fa-code text-cyan-400"></i>
+          <span>API Directory JSON</span>
+        </a>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ========================================================================= -->
+  <!-- MAIN CONTENT: MYSQL LAB & VIVA DEFENSE CENTER -->
+  <!-- ========================================================================= -->
+  <main class="flex-1 max-w-7xl mx-auto w-full p-4 lg:p-8 space-y-6">
+
+    <!-- Top Headline & Overview Banner -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+      <div>
+        <div class="flex items-center gap-2 text-cyan-400 text-xs font-semibold uppercase tracking-wider mb-1">
+          <i class="fa-solid fa-database"></i>
+          <span>Database Management Systems (DBMS) Laboratory Showcase</span>
+        </div>
+        <h2 class="text-2xl font-black text-white tracking-tight">MySQL 8.0 Architecture & Viva Defense Center</h2>
+        <p class="text-slate-400 text-xs mt-1">
+          Complete breakdown of R-Tree Spatial Indexes, Great Circle Distance Algorithms, ACID Isolation Levels, Stored Procedures, and Autonomous Triggers.
+        </p>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <span class="px-3 py-1.5 rounded-lg bg-emerald-950/80 border border-emerald-800/80 text-emerald-300 font-mono text-xs flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span>InnoDB ACID Engine Ready</span>
+        </span>
+      </div>
+    </div>
+
+    <!-- 4 Metrics Summary Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="glass-card p-4 rounded-xl border border-slate-800">
+        <div class="flex items-center justify-between text-slate-400 text-xs font-semibold">
+          <span>Relational Schema</span>
+          <i class="fa-solid fa-table text-cyan-400"></i>
+        </div>
+        <div class="text-3xl font-black text-white mt-2">8</div>
+        <span class="text-[11px] text-cyan-400/80 mt-1 block">InnoDB Relational Tables</span>
+      </div>
+
+      <div class="glass-card p-4 rounded-xl border border-slate-800">
+        <div class="flex items-center justify-between text-slate-400 text-xs font-semibold">
+          <span>Stored Procedures</span>
+          <i class="fa-solid fa-gears text-indigo-400"></i>
+        </div>
+        <div class="text-3xl font-black text-indigo-400 mt-2">3</div>
+        <span class="text-[11px] text-slate-400 mt-1 block">Compiled Spatial & ACID Routines</span>
+      </div>
+
+      <div class="glass-card p-4 rounded-xl border border-slate-800">
+        <div class="flex items-center justify-between text-slate-400 text-xs font-semibold">
+          <span>Database Triggers</span>
+          <i class="fa-solid fa-bolt-lightning text-amber-400"></i>
+        </div>
+        <div class="text-3xl font-black text-amber-400 mt-2">2</div>
+        <span class="text-[11px] text-amber-400/80 mt-1 block">Autonomous Business Rule Hooks</span>
+      </div>
+
+      <div class="glass-card p-4 rounded-xl border border-slate-800">
+        <div class="flex items-center justify-between text-slate-400 text-xs font-semibold">
+          <span>Database Views</span>
+          <i class="fa-solid fa-eye text-emerald-400"></i>
+        </div>
+        <div class="text-3xl font-black text-emerald-400 mt-2">3</div>
+        <span class="text-[11px] text-emerald-400/80 mt-1 block">Real-time Abstracted Views</span>
+      </div>
+    </div>
+
+    <!-- Interactive Navigation Tabs -->
+    <div class="flex flex-wrap gap-2 border-b border-slate-800 pb-3">
+      <button onclick="setLabTab('spatial')" id="tabBtnSpatial" class="px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 bg-cyan-600 text-slate-950">
+        <i class="fa-solid fa-earth-americas"></i>
+        <span>1. Spatial GIS Engine</span>
+      </button>
+      <button onclick="setLabTab('acid')" id="tabBtnAcid" class="px-4 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800">
+        <i class="fa-solid fa-lock"></i>
+        <span>2. ACID Transactions & Concurrency</span>
+      </button>
+      <button onclick="setLabTab('triggers')" id="tabBtnTriggers" class="px-4 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800">
+        <i class="fa-solid fa-bolt"></i>
+        <span>3. Procedures & Triggers</span>
+      </button>
+      <button onclick="setLabTab('viva')" id="tabBtnViva" class="px-4 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800">
+        <i class="fa-solid fa-graduation-cap"></i>
+        <span>4. Examiner Viva Q&A</span>
+      </button>
+    </div>
+
+    <!-- TAB 1: SPATIAL GIS ENGINE -->
+    <div id="labSectionSpatial" class="space-y-6">
+      
+      <div class="glass-card p-6 rounded-xl border border-slate-800 space-y-4">
+        <div class="flex items-center justify-between">
+          <h3 class="text-base font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-satellite text-cyan-400"></i>
+            <span>Spatial Proximity Calculation with ST_Distance_Sphere</span>
+          </h3>
+          <span class="text-xs font-mono text-cyan-400 bg-cyan-950/80 px-2 py-1 rounded border border-cyan-800">
+            WGS 84 Ellipsoid (SRID 4326)
+          </span>
+        </div>
+
+        <p class="text-xs text-slate-300 leading-relaxed">
+          GeoResQ-Sync leverages the native MySQL 8.0 spatial function <code class="text-cyan-400 font-mono font-bold">ST_Distance_Sphere(g1, g2)</code>. 
+          Unlike standard Euclidean distance <code class="font-mono text-slate-400">&radic;((x2 - x1)&sup2; + (y2 - y1)&sup2;)</code> which produces massive geometric distortion across geographic longitude and latitude, 
+          MySQL calculates the true spherical geodesic distance in meters along the Earth's mean radius (approx. 6,371 km).
+        </p>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 pt-2">
+          <div>
+            <h4 class="text-xs font-bold text-slate-400 uppercase font-mono mb-2">1. Stored Procedure Definition</h4>
+            <pre class="code-block"><code>CREATE PROCEDURE sp_find_nearest_volunteers(
+    IN target_lat DECIMAL(10, 8),
+    IN target_lng DECIMAL(11, 8),
+    IN search_radius_meters DOUBLE
+)
+BEGIN
+    SELECT 
+        v.id,
+        u.name,
+        u.phone,
+        v.vehicle_type,
+        v.skills,
+        v.blood_group,
+        ST_Distance_Sphere(
+            v.current_location, 
+            POINT(target_lng, target_lat)
+        ) AS distance_meters
+    FROM volunteers v
+    JOIN users u ON v.user_id = u.id
+    WHERE v.status = 'AVAILABLE'
+      AND ST_Distance_Sphere(
+            v.current_location, 
+            POINT(target_lng, target_lat)
+      ) &lt;= search_radius_meters
+    ORDER BY distance_meters ASC;
+END;</code></pre>
+          </div>
+
+          <div>
+            <h4 class="text-xs font-bold text-slate-400 uppercase font-mono mb-2">2. Shelters Spatial Radius Procedure</h4>
+            <pre class="code-block"><code>CREATE PROCEDURE sp_find_nearest_shelters(
+    IN target_lat DECIMAL(10, 8),
+    IN target_lng DECIMAL(11, 8),
+    IN search_radius_meters DOUBLE
+)
+BEGIN
+    SELECT 
+        id,
+        name,
+        address,
+        capacity,
+        current_occupancy,
+        (capacity - current_occupancy) AS available_slots,
+        ST_Distance_Sphere(
+            location, 
+            POINT(target_lng, target_lat)
+        ) AS distance_meters
+    FROM evacuation_shelters
+    WHERE status = 'OPEN'
+      AND current_occupancy &lt; capacity
+      AND ST_Distance_Sphere(
+            location, 
+            POINT(target_lng, target_lat)
+      ) &lt;= search_radius_meters
+    ORDER BY distance_meters ASC;
+END;</code></pre>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- TAB 2: ACID TRANSACTIONS & CONCURRENCY -->
+    <div id="labSectionAcid" class="space-y-6 hidden">
+      
+      <div class="glass-card p-6 rounded-xl border border-slate-800 space-y-4">
+        <div class="flex items-center justify-between">
+          <h3 class="text-base font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-shield-halved text-indigo-400"></i>
+            <span>ACID Transactional Guarantees with InnoDB Row Locking</span>
+          </h3>
+          <span class="text-xs font-mono text-indigo-400 bg-indigo-950/80 px-2 py-1 rounded border border-indigo-800">
+            REPEATABLE READ / FOR UPDATE
+          </span>
+        </div>
+
+        <p class="text-xs text-slate-300 leading-relaxed">
+          During natural disasters, multiple rescue workers may attempt to allocate from the same warehouse stock simultaneously. 
+          Without strict concurrency control, a classic <strong>Race Condition (Lost Update)</strong> occurs, resulting in negative inventory. 
+          GeoResQ-Sync prevents this by applying an exclusive write lock (<code class="font-mono text-indigo-300">FOR UPDATE</code>) inside an explicit ACID transaction.
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-3 text-center">
+          <div class="bg-slate-900/90 p-3 rounded-lg border border-slate-800">
+            <span class="text-xl font-black text-indigo-400 font-mono">A</span>
+            <h4 class="text-xs font-bold text-white mt-1">Atomicity</h4>
+            <p class="text-[11px] text-slate-400 mt-1">All updates (stock reduction & dispatch log) succeed together or rollback entirely.</p>
+          </div>
+          <div class="bg-slate-900/90 p-3 rounded-lg border border-slate-800">
+            <span class="text-xl font-black text-indigo-400 font-mono">C</span>
+            <h4 class="text-xs font-bold text-white mt-1">Consistency</h4>
+            <p class="text-[11px] text-slate-400 mt-1">Database constraints guarantee quantity never drops below 0 and references valid SOS requests.</p>
+          </div>
+          <div class="bg-slate-900/90 p-3 rounded-lg border border-slate-800">
+            <span class="text-xl font-black text-indigo-400 font-mono">I</span>
+            <h4 class="text-xs font-bold text-white mt-1">Isolation</h4>
+            <p class="text-[11px] text-slate-400 mt-1"><code class="text-xs">SELECT ... FOR UPDATE</code> locks targeted inventory row, blocking concurrent writers.</p>
+          </div>
+          <div class="bg-slate-900/90 p-3 rounded-lg border border-slate-800">
+            <span class="text-xl font-black text-indigo-400 font-mono">D</span>
+            <h4 class="text-xs font-bold text-white mt-1">Durability</h4>
+            <p class="text-[11px] text-slate-400 mt-1">Once committed, the transaction is flushed to InnoDB redo logs, surviving crashes or power cuts.</p>
+          </div>
+        </div>
+
+        <pre class="code-block"><code>CREATE PROCEDURE sp_dispatch_relief_acid(
+    IN p_sos_id INT,
+    IN p_item_name VARCHAR(100),
+    IN p_quantity INT,
+    IN p_destination VARCHAR(255),
+    IN p_dispatched_by VARCHAR(100),
+    IN p_notes TEXT,
+    OUT p_status VARCHAR(50),
+    OUT p_message VARCHAR(255)
+)
+proc_label: BEGIN
+    DECLARE v_current_stock INT;
+    DECLARE v_inventory_id INT;
+
+    -- Exit handler for rollback on unexpected MySQL error
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        SET p_status = 'ERROR';
+        SET p_message = 'Transaction aborted due to SQL exception. Rolled back.';
+    END;
+
+    START TRANSACTION;
+
+    -- 1. Acquire exclusive row lock on targeted inventory item
+    SELECT id, quantity_available INTO v_inventory_id, v_current_stock
+    FROM relief_inventory
+    WHERE item_name = p_item_name
+    FOR UPDATE;
+
+    -- 2. Verify sufficient stock exists
+    IF v_inventory_id IS NULL THEN
+        ROLLBACK;
+        SET p_status = 'NOT_FOUND';
+        SET p_message = 'Relief item does not exist in inventory.';
+        LEAVE proc_label;
+    END IF;
+
+    IF v_current_stock &lt; p_quantity THEN
+        ROLLBACK;
+        SET p_status = 'INSUFFICIENT_STOCK';
+        SET p_message = CONCAT('Only ', v_current_stock, ' units available. Requested: ', p_quantity);
+        LEAVE proc_label;
+    END IF;
+
+    -- 3. Deduct warehouse inventory
+    UPDATE relief_inventory
+    SET quantity_available = quantity_available - p_quantity
+    WHERE id = v_inventory_id;
+
+    -- 4. Record dispatch linked to SOS incident
+    INSERT INTO relief_dispatches (sos_request_id, item_name, quantity, destination, dispatched_by, notes)
+    VALUES (p_sos_id, p_item_name, p_quantity, p_destination, p_dispatched_by, p_notes);
+
+    COMMIT;
+    SET p_status = 'SUCCESS';
+    SET p_message = 'Relief dispatch successfully committed.';
+END;</code></pre>
+      </div>
+
+    </div>
+
+    <!-- TAB 3: PROCEDURES & TRIGGERS -->
+    <div id="labSectionTriggers" class="space-y-6 hidden">
+      
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        <!-- Trigger 1 -->
+        <div class="glass-card p-5 rounded-xl border border-slate-800 space-y-3">
+          <div class="flex items-center justify-between">
+            <h4 class="text-sm font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-bolt text-amber-400"></i>
+              <span>Trigger 1: SOS Auto-Update on Volunteer Assignment</span>
+            </h4>
+            <span class="text-[10px] font-mono bg-amber-950 text-amber-300 px-2 py-0.5 rounded border border-amber-800">
+              AFTER UPDATE ON volunteers
+            </span>
+          </div>
+
+          <p class="text-xs text-slate-300">
+            Whenever a volunteer is assigned to an SOS emergency, this trigger automatically switches the SOS status from <code class="text-amber-400">PENDING</code> to <code class="text-cyan-400">ASSIGNED</code> without requiring separate manual queries.
+          </p>
+
+          <pre class="code-block"><code>CREATE TRIGGER trg_auto_update_sos_on_volunteer_assign
+AFTER UPDATE ON volunteers
+FOR EACH ROW
+BEGIN
+    IF NEW.assigned_rescue_id IS NOT NULL 
+       AND (OLD.assigned_rescue_id IS NULL OR OLD.assigned_rescue_id &lt;&gt; NEW.assigned_rescue_id) THEN
+        UPDATE sos_requests
+        SET status = 'ASSIGNED'
+        WHERE id = NEW.assigned_rescue_id
+          AND status = 'PENDING';
+    END IF;
+END;</code></pre>
+        </div>
+
+        <!-- Trigger 2 -->
+        <div class="glass-card p-5 rounded-xl border border-slate-800 space-y-3">
+          <div class="flex items-center justify-between">
+            <h4 class="text-sm font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-bolt text-emerald-400"></i>
+              <span>Trigger 2: Auto-Restock on Donation Approval</span>
+            </h4>
+            <span class="text-[10px] font-mono bg-emerald-950 text-emerald-300 px-2 py-0.5 rounded border border-emerald-800">
+              AFTER UPDATE ON relief_donations
+            </span>
+          </div>
+
+          <p class="text-xs text-slate-300">
+            When an admin approves a community donation pledge, this trigger automatically increments the stock in <code class="text-emerald-400">relief_inventory</code> and updates the timestamp.
+          </p>
+
+          <pre class="code-block"><code>CREATE TRIGGER trg_increase_inventory_on_donation_approved
+AFTER UPDATE ON relief_donations
+FOR EACH ROW
+BEGIN
+    IF NEW.status = 'APPROVED' AND OLD.status &lt;&gt; 'APPROVED' THEN
+        UPDATE relief_inventory
+        SET quantity_available = quantity_available + NEW.quantity,
+            last_restocked_at = NOW()
+        WHERE item_name = NEW.item_name;
+    END IF;
+END;</code></pre>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- TAB 4: EXAMINER VIVA Q&A -->
+    <div id="labSectionViva" class="space-y-4 hidden">
+      
+      <div class="glass-card p-5 rounded-xl border border-slate-800 space-y-3">
+        <h4 class="text-sm font-bold text-cyan-400 flex items-center gap-2">
+          <i class="fa-solid fa-circle-question"></i>
+          <span>Q1: Why use MySQL ST_Distance_Sphere instead of the classic Haversine formula in Node.js?</span>
+        </h4>
+        <p class="text-xs text-slate-300 leading-relaxed pl-6 border-l-2 border-cyan-500/50">
+          <strong>Answer:</strong> Calculating distances in Node.js requires transferring the entire volunteers table across the network into RAM first. By using <code class="text-cyan-400 font-mono">ST_Distance_Sphere</code> directly in MySQL Stored Procedures, the database server filters out irrelevant volunteers using spatial indexing, returning only the nearest rescuers. This reduces network payload by &gt;95% and minimizes CPU overhead on the API server.
+        </p>
+      </div>
+
+      <div class="glass-card p-5 rounded-xl border border-slate-800 space-y-3">
+        <h4 class="text-sm font-bold text-indigo-400 flex items-center gap-2">
+          <i class="fa-solid fa-circle-question"></i>
+          <span>Q2: How does the system handle high-concurrency race conditions during relief distribution?</span>
+        </h4>
+        <p class="text-xs text-slate-300 leading-relaxed pl-6 border-l-2 border-indigo-500/50">
+          <strong>Answer:</strong> We use InnoDB ACID transactions with row-level locks via <code class="text-indigo-400 font-mono">SELECT ... FOR UPDATE</code> inside <code class="text-indigo-400 font-mono">sp_dispatch_relief_acid</code>. If two dispatchers attempt to distribute the last 20 life jackets simultaneously, MySQL allows the first transaction to lock the row while placing the second transaction on wait. The second transaction checks updated stock and triggers a clean rollback, ensuring stock never becomes negative.
+        </p>
+      </div>
+
+      <div class="glass-card p-5 rounded-xl border border-slate-800 space-y-3">
+        <h4 class="text-sm font-bold text-amber-400 flex items-center gap-2">
+          <i class="fa-solid fa-circle-question"></i>
+          <span>Q3: What database design best practices are implemented in GeoResQ-Sync?</span>
+        </h4>
+        <p class="text-xs text-slate-300 leading-relaxed pl-6 border-l-2 border-amber-500/50">
+          <strong>Answer:</strong> 
+          1. <strong>Spatial Types:</strong> <code class="font-mono">POINT</code> coordinates with spatial indexing.<br>
+          2. <strong>Referential Integrity:</strong> Cascading foreign keys between users, SOS requests, and relief dispatches.<br>
+          3. <strong>Database Triggers:</strong> Decoupled side-effects (auto-updating status, restocking inventory).<br>
+          4. <strong>Views:</strong> Materialized query abstraction (<code class="font-mono">vw_active_rescue_missions</code>) protecting internal schema structure.
+        </p>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- ========================================================================= -->
+  <!-- CLIENT JAVASCRIPT LOGIC -->
+  <!-- ========================================================================= -->
+  <script>
+    function setLabTab(tab) {
+      const sections = {
+        spatial: document.getElementById('labSectionSpatial'),
+        acid: document.getElementById('labSectionAcid'),
+        triggers: document.getElementById('labSectionTriggers'),
+        viva: document.getElementById('labSectionViva')
+      };
+
+      const buttons = {
+        spatial: document.getElementById('tabBtnSpatial'),
+        acid: document.getElementById('tabBtnAcid'),
+        triggers: document.getElementById('tabBtnTriggers'),
+        viva: document.getElementById('tabBtnViva')
+      };
+
+      for (let key in sections) {
+        if (key === tab) {
+          sections[key].classList.remove('hidden');
+          buttons[key].className = 'px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 bg-cyan-600 text-slate-950 shadow-md';
+        } else {
+          sections[key].classList.add('hidden');
+          buttons[key].className = 'px-4 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800';
+        }
+      }
+    }
+  </script>
+</body>
+</html>

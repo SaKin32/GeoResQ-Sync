@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Volunteer Rescue Fleet | GeoResQ-Sync</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome 6 Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #070b14;
+      font-family: 'Inter', sans-serif;
+      color: #e2e8f0;
+      overflow-x: hidden;
+    }
+
+    .glass-nav {
+      background: rgba(13, 21, 39, 0.95);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .glass-card {
+      background: rgba(22, 34, 56, 0.75);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .glass-card:hover {
+      border-color: rgba(16, 185, 129, 0.4);
+      transform: translateY(-2px);
+    }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: rgba(13, 21, 39, 0.5); }
+    ::-webkit-scrollbar-thumb { background: rgba(100, 116, 139, 0.5); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.8); }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased selection:bg-emerald-500 selection:text-slate-950">
+
+  <!-- ========================================================================= -->
+  <!-- TOP NAVIGATION HEADER (SHARED ACROSS ALL DEDICATED PAGES) -->
+  <!-- ========================================================================= -->
+  <header class="glass-nav sticky top-0 z-50 px-4 lg:px-6 py-2.5">
+    <div class="flex flex-col md:flex-row items-center justify-between gap-3">
+      
+      <!-- Brand & Project Title -->
+      <a href="/" class="flex items-center space-x-3 w-full md:w-auto">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-red-500/20 to-cyan-500/20 border border-slate-700 flex items-center justify-center text-cyan-400 text-base shadow-lg shadow-cyan-500/10 shrink-0">
+          <i class="fa-solid fa-satellite-dish"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-base font-black tracking-tight text-white flex items-center gap-1.5">
+              GeoResQ-Sync
+            </h1>
+            <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+              Fleet Grid
+            </span>
+          </div>
+          <p class="text-[10px] text-slate-400">Autonomous Disaster Management & ACID Aid Coordination</p>
+        </div>
+      </a>
+
+      <!-- CENTER: DEDICATED WEB PAGES NAVIGATION -->
+      <nav class="flex items-center bg-slate-900/90 p-1 rounded-xl border border-slate-800 text-xs w-full md:w-auto justify-center overflow-x-auto gap-1">
+        <a href="/" class="px-3.5 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 text-slate-400 hover:text-white transition">
+          <i class="fa-solid fa-map-location-dot"></i>
+          <span>1. Radar</span>
+        </a>
+
+        <a href="/shelters" class="px-3.5 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 text-slate-400 hover:text-white transition">
+          <i class="fa-solid fa-house-chimney-medical text-cyan-400"></i>
+          <span>2. Shelters</span>
+        </a>
+
+        <a href="/logistics" class="px-3.5 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 text-slate-400 hover:text-white transition">
+          <i class="fa-solid fa-boxes-packing text-indigo-400"></i>
+          <span>3. Logistics & Donations</span>
+        </a>
+
+        <a href="/volunteers" class="px-3.5 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition bg-cyan-500 text-slate-950 shadow-md">
+          <i class="fa-solid fa-shield-heart"></i>
+          <span>4. Fleet</span>
+        </a>
+
+        <a href="/lab" class="px-3.5 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 text-slate-400 hover:text-white transition relative">
+          <i class="fa-solid fa-database text-cyan-400"></i>
+          <span>5. MySQL Lab</span>
+        </a>
+
+        <a href="/alerts" class="px-3.5 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 text-slate-400 hover:text-white transition">
+          <i class="fa-solid fa-cloud-bolt text-amber-400"></i>
+          <span>6. Alerts</span>
+        </a>
+      </nav>
+
+      <!-- RIGHT: PRIMARY ACTIONS -->
+      <div class="flex items-center gap-2 w-full md:w-auto justify-end">
+        <button onclick="openEnrollModal()" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-emerald-600/30">
+          <i class="fa-solid fa-user-plus"></i>
+          <span>Enroll Volunteer</span>
+        </button>
+
+        <button onclick="loadVolunteers()" class="p-1.5 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg border border-slate-700/60 transition" title="Refresh Fleet">
+          <i class="fa-solid fa-rotate text-xs"></i>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ========================================================================= -->
+  <!-- MAIN CONTENT: VOLUNTEER FLEET OPERATIONS -->
+  <!-- ========================================================================= -->
+  <main class="flex-1 max-w-7xl mx-auto w-full p-4 lg:p-8 space-y-6">
+
+    <!-- Top Headline & Overview Banner -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+      <div>
+        <div class="flex items-center gap-2 text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-1">
+          <i class="fa-solid fa-shield-heart"></i>
+          <span>Disaster Response First Responders & Field Fleet</span>
+        </div>
+        <h2 class="text-2xl font-black text-white tracking-tight">Volunteer Rescue Fleet Directory</h2>
+        <p class="text-slate-400 text-xs mt-1">
+          Monitor specialized rescue crafts, amphibious vehicles, live GPS points, and mark completed rescue missions.
+        </p>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <a href="/" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold transition flex items-center gap-2 border border-slate-700">
+          <i class="fa-solid fa-map text-emerald-400"></i>
+          <span>Live GIS Radar</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Quick Stats Cards Grid -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="glass-card p-4 rounded-xl border border-slate-800">
+        <div class="flex items-center justify-between text-slate-400 text-xs font-semibold">
+          <span>Total Rescuers</span>
+          <i class="fa-solid fa-users-viewfinder text-cyan-400"></i>
+        </div>
+        <div class="text-3xl font-black text-white mt-2" id="statTotalVolunteers">0</div>
+        <span class="text-[11px] text-cyan-400/80 mt-1 block">Registered in fleet</span>
+      </div>
+
+      <div class="glass-card p-4 rounded-xl border border-slate-800">
+        <div class="flex items-center justify-between text-slate-400 text-xs font-semibold">
+          <span>Ready on Standby</span>
+          <i class="fa-solid fa-circle-check text-emerald-400"></i>
+        </div>
+        <div class="text-3xl font-black text-emerald-400 mt-2" id="statAvailableVolunteers">0</div>
+        <span class="text-[11px] text-emerald-400/80 mt-1 block">Immediate dispatch ready</span>
+      </div>
+
+      <div class="glass-card p-4 rounded-xl border border-slate-800">
+        <div class="flex items-center justify-between text-slate-400 text-xs font-semibold">
+          <span>Deployed in Mission</span>
+          <i class="fa-solid fa-person-swimming text-red-400"></i>
+        </div>
+        <div class="text-3xl font-black text-red-400 mt-2" id="statBusyVolunteers">0</div>
+        <span class="text-[11px] text-red-400/80 mt-1 block">Active on SOS targets</span>
+      </div>
+
+      <div class="glass-card p-4 rounded-xl border border-slate-800">
+        <div class="flex items-center justify-between text-slate-400 text-xs font-semibold">
+          <span>Off-Duty / Stand-Down</span>
+          <i class="fa-solid fa-power-off text-slate-500"></i>
+        </div>
+        <div class="text-3xl font-black text-slate-400 mt-2" id="statOfflineVolunteers">0</div>
+        <span class="text-[11px] text-slate-500 mt-1 block">Resting or off-duty</span>
+      </div>
+    </div>
+
+    <!-- Filter & Search Controls -->
+    <div class="glass-card p-3 rounded-xl border border-slate-800 flex flex-col md:flex-row items-center justify-between gap-3">
+      <div class="relative w-full md:w-80">
+        <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-500 text-xs"></i>
+        <input 
+          type="text" 
+          id="searchVolunteerInput" 
+          oninput="filterFleet()"
+          placeholder="Search rescuer name, vehicle, skills, blood group..." 
+          class="w-full bg-slate-900 border border-slate-700/80 rounded-lg pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition"
+        >
+      </div>
+
+      <div class="flex items-center gap-2 w-full md:w-auto">
+        <span class="text-xs text-slate-400 font-semibold shrink-0">Status:</span>
+        <select 
+          id="statusFilterSelect" 
+          onchange="filterFleet()"
+          class="bg-slate-900 border border-slate-700/80 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500"
+        >
+          <option value="ALL">All Statuses</option>
+          <option value="AVAILABLE">Available (Standby)</option>
+          <option value="BUSY">Busy (In Mission)</option>
+          <option value="OFFLINE">Offline / Off-Duty</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Fleet Cards Grid -->
+    <div id="fleetGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div class="col-span-full text-center py-16 text-slate-500">
+        <i class="fa-solid fa-circle-notch fa-spin text-2xl text-emerald-500 mb-2"></i>
+        <p class="text-sm">Loading rescue fleet units...</p>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: ENROLL NEW VOLUNTEER -->
+  <!-- ========================================================================= -->
+  <div id="enrollModal" class="fixed inset-0 z-50 hidden bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="glass-card rounded-2xl max-w-lg w-full border border-slate-700 p-6 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="text-base font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-user-plus text-emerald-400"></i>
+          <span>Enroll New Volunteer Rescuer</span>
+        </h3>
+        <button onclick="closeEnrollModal()" class="text-slate-400 hover:text-white">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <form id="enrollForm" onsubmit="handleEnrollVolunteer(event)" class="space-y-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Full Name *</label>
+          <input type="text" id="volName" required placeholder="e.g. Captain Farhan Ahmed" 
+            class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Phone Number *</label>
+            <input type="text" id="volPhone" required placeholder="+8801811000000" 
+              class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Blood Group</label>
+            <select id="volBlood" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+              <option value="O+">O Positive (O+)</option>
+              <option value="O-">O Negative (O-)</option>
+              <option value="A+">A Positive (A+)</option>
+              <option value="A-">A Negative (A-)</option>
+              <option value="B+">B Positive (B+)</option>
+              <option value="B-">B Negative (B-)</option>
+              <option value="AB+">AB Positive (AB+)</option>
+              <option value="AB-">AB Negative (AB-)</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Vehicle / Craft Type *</label>
+          <select id="volVehicle" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+            <option value="High-Speed Rescue Inflatable Boat">High-Speed Rescue Inflatable Boat</option>
+            <option value="4WD Offroad Amphibious Truck">4WD Offroad Amphibious Truck</option>
+            <option value="Heavy Evacuation Vessel">Heavy Evacuation Vessel</option>
+            <option value="Aerial Surveillance & Drop Drone">Aerial Surveillance & Drop Drone</option>
+            <option value="Emergency Ambulance">Emergency Ambulance</option>
+            <option value="Kayaks / Small Watercraft">Kayaks / Small Watercraft</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Specialized Skills</label>
+          <input type="text" id="volSkills" value="Flood Rescue, Paramedic First Aid, Rapid Evacuation" 
+            class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Initial Latitude</label>
+            <input type="number" step="any" id="volLat" value="24.8965" required 
+              class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Initial Longitude</label>
+            <input type="number" step="any" id="volLng" value="91.8700" required 
+              class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+          <button type="button" onclick="closeEnrollModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-lg transition">
+            Cancel
+          </button>
+          <button type="submit" id="saveVolBtn" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-slate-950 text-xs font-bold rounded-lg transition flex items-center gap-1.5 shadow-md shadow-emerald-600/30">
+            <i class="fa-solid fa-check"></i>
+            <span>Register Rescuer</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: UPDATE GPS LOCATION -->
+  <!-- ========================================================================= -->
+  <div id="locationModal" class="fixed inset-0 z-50 hidden bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="glass-card rounded-2xl max-w-sm w-full border border-slate-700 p-6 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="text-sm font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-location-crosshairs text-emerald-400"></i>
+          <span>Update Rescuer Coordinates</span>
+        </h3>
+        <button onclick="closeLocationModal()" class="text-slate-400 hover:text-white">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <form id="locationForm" onsubmit="handleUpdateLocation(event)" class="space-y-3">
+        <input type="hidden" id="locVolId">
+        
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">New Latitude (GPS)</label>
+          <input type="number" step="any" id="locLat" required 
+            class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">New Longitude (GPS)</label>
+          <input type="number" step="any" id="locLng" required 
+            class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-2">
+          <button type="button" onclick="closeLocationModal()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-lg transition">
+            Cancel
+          </button>
+          <button type="submit" id="saveLocBtn" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 text-xs font-bold rounded-lg transition">
+            Save GPS
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="fixed bottom-4 right-4 z-50 space-y-2 pointer-events-none"></div>
+
+  <!-- ========================================================================= -->
+  <!-- CLIENT JAVASCRIPT LOGIC -->
+  <!-- ========================================================================= -->
+  <script>
+    let fleet = [];
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      const bgColors = {
+        success: 'bg-emerald-950/95 border-emerald-500/50 text-emerald-200',
+        error: 'bg-red-950/95 border-red-500/50 text-red-200',
+        info: 'bg-cyan-950/95 border-cyan-500/50 text-cyan-200'
+      };
+
+      toast.className = `p-3 rounded-xl border backdrop-blur-md shadow-xl text-xs font-medium flex items-center gap-2 transform transition-all duration-300 pointer-events-auto ${bgColors[type] || bgColors.info}`;
+      toast.innerHTML = `<i class="fa-solid ${type === 'success' ? 'fa-circle-check text-emerald-400' : type === 'error' ? 'fa-circle-exclamation text-red-400' : 'fa-circle-info text-cyan-400'}"></i> <span>${message}</span>`;
+      
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(10px)';
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+
+    async function loadVolunteers() {
+      try {
+        const res = await fetch('/api/volunteers');
+        const data = await res.json();
+        if (data.success && Array.isArray(data.data)) {
+          fleet = data.data;
+          updateFleetStats(fleet);
+          renderFleetGrid(fleet);
+        } else {
+          showToast('Failed to load fleet', 'error');
+        }
+      } catch (err) {
+        console.error('Error fetching fleet:', err);
+        showToast('Network error loading fleet', 'error');
+      }
+    }
+
+    function updateFleetStats(volunteers) {
+      const total = volunteers.length;
+      const available = volunteers.filter(v => v.status === 'AVAILABLE').length;
+      const busy = volunteers.filter(v => v.status === 'BUSY').length;
+      const offline = volunteers.filter(v => v.status === 'OFFLINE').length;
+
+      document.getElementById('statTotalVolunteers').textContent = total;
+      document.getElementById('statAvailableVolunteers').textContent = available;
+      document.getElementById('statBusyVolunteers').textContent = busy;
+      document.getElementById('statOfflineVolunteers').textContent = offline;
+    }
+
+    function renderFleetGrid(volunteers) {
+      const container = document.getElementById('fleetGrid');
+      if (volunteers.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-full text-center py-16 text-slate-500">
+            <i class="fa-solid fa-user-slash text-3xl mb-2"></i>
+            <p class="text-sm">No rescuers match your filter criteria.</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = volunteers.map(v => {
+        let statusBadge = '';
+        if (v.status === 'AVAILABLE') {
+          statusBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>STANDBY</span>`;
+        } else if (v.status === 'BUSY') {
+          statusBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-500/20 text-red-400 border border-red-500/30 flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-red-400"></span>IN MISSION</span>`;
+        } else {
+          statusBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-700 text-slate-400 border border-slate-600">OFFLINE</span>`;
+        }
+
+        // Mission details card if busy
+        let missionSection = '';
+        if (v.assigned_rescue_id) {
+          missionSection = `
+            <div class="bg-red-950/40 border border-red-800/80 rounded-lg p-3 space-y-2 mt-3">
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] font-mono font-bold text-red-400 flex items-center gap-1">
+                  <i class="fa-solid fa-triangle-exclamation"></i>
+                  ACTIVE RESCUE: SOS #${v.assigned_rescue_id}
+                </span>
+                <span class="text-[10px] px-1.5 py-0.2 bg-red-900 text-red-200 rounded font-bold">${v.assigned_sos_urgency || 'HIGH'}</span>
+              </div>
+              <p class="text-xs text-slate-200 font-medium">Victim: ${v.assigned_victim_name || 'Stranded Citizen'}</p>
+              <p class="text-[11px] text-slate-400 line-clamp-2">${v.assigned_sos_details || 'Emergency flood rescue in progress'}</p>
+              
+              <button 
+                onclick="completeMission(${v.id}, ${v.assigned_rescue_id})"
+                class="w-full py-1.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 text-xs font-bold rounded-lg transition flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/20"
+                title="Marks SOS as RESOLVED and frees rescuer for next mission!"
+              >
+                <i class="fa-solid fa-circle-check"></i>
+                <span>Mark Rescue Completed (RESOLVED)</span>
+              </button>
+            </div>
+          `;
+        }
+
+        // Skills chips
+        const skillsList = (v.skills || 'Emergency First Aid').split(',').map(s => `
+          <span class="px-2 py-0.5 bg-slate-800/80 text-slate-300 rounded text-[10px] border border-slate-700">${s.trim()}</span>
+        `).join('');
+
+        return `
+          <div class="glass-card rounded-xl p-5 border border-slate-800 flex flex-col justify-between space-y-4">
+            <div>
+              <!-- Header: Name & Status -->
+              <div class="flex items-start justify-between gap-2">
+                <div>
+                  <div class="flex items-center gap-2">
+                    <h3 class="text-sm font-bold text-white">${v.name}</h3>
+                    <span class="px-1.5 py-0.2 bg-red-950 text-red-300 border border-red-800 rounded font-mono text-[10px] font-bold">
+                      ${v.blood_group || 'O+'}
+                    </span>
+                  </div>
+                  <p class="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
+                    <i class="fa-solid fa-phone text-slate-500 text-[10px]"></i>
+                    <a href="tel:${v.phone}" class="hover:underline text-cyan-400 font-mono">${v.phone}</a>
+                  </p>
+                </div>
+                ${statusBadge}
+              </div>
+
+              <!-- Vehicle & Equipment -->
+              <div class="mt-3 bg-slate-900/90 rounded-lg p-2.5 border border-slate-800 flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+                  <i class="fa-solid fa-sailboat"></i>
+                </div>
+                <div class="overflow-hidden">
+                  <span class="text-[10px] uppercase font-bold text-slate-500 block">Assigned Craft / Unit</span>
+                  <span class="text-xs font-semibold text-slate-200 truncate block">${v.vehicle_type || 'Rescue Inflatable Boat'}</span>
+                </div>
+              </div>
+
+              <!-- Skills tags -->
+              <div class="mt-3 flex flex-wrap gap-1">
+                ${skillsList}
+              </div>
+
+              <!-- GPS Coordinates -->
+              <div class="mt-3 flex items-center justify-between text-[11px] text-slate-400 border-t border-slate-800/80 pt-2.5">
+                <span class="text-slate-500 font-mono text-[10px]">POINT(${Number(v.latitude).toFixed(4)}, ${Number(v.longitude).toFixed(4)})</span>
+                <button onclick="openLocationModal(${v.id}, ${v.latitude}, ${v.longitude})" class="text-emerald-400 hover:underline text-[11px] font-semibold flex items-center gap-1">
+                  <i class="fa-solid fa-location-crosshairs"></i>
+                  <span>Update GPS</span>
+                </button>
+              </div>
+
+              <!-- Active Mission Card -->
+              ${missionSection}
+            </div>
+
+            <!-- Bottom Action Bar -->
+            <div class="border-t border-slate-800 pt-3 flex items-center justify-between gap-2">
+              <div class="flex items-center gap-1">
+                <button 
+                  onclick="toggleStatus(${v.id}, '${v.status === 'AVAILABLE' ? 'OFFLINE' : 'AVAILABLE'}')" 
+                  class="px-2.5 py-1 ${v.status === 'AVAILABLE' ? 'bg-slate-800 text-slate-300' : 'bg-emerald-950/80 text-emerald-300 border border-emerald-800'} rounded-lg text-xs font-semibold transition"
+                >
+                  ${v.status === 'AVAILABLE' ? 'Set Off-Duty' : 'Set Available'}
+                </button>
+              </div>
+
+              <a 
+                href="/?targetLat=${v.latitude}&targetLng=${v.longitude}" 
+                class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-lg text-xs font-medium transition flex items-center gap-1"
+                title="Locate on Mission Radar"
+              >
+                <i class="fa-solid fa-map-pin text-emerald-400"></i>
+                <span>Map</span>
+              </a>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function filterFleet() {
+      const query = document.getElementById('searchVolunteerInput').value.toLowerCase().trim();
+      const statusFilter = document.getElementById('statusFilterSelect').value;
+
+      const filtered = fleet.filter(v => {
+        const matchesQuery = !query || 
+          (v.name && v.name.toLowerCase().includes(query)) ||
+          (v.phone && v.phone.toLowerCase().includes(query)) ||
+          (v.vehicle_type && v.vehicle_type.toLowerCase().includes(query)) ||
+          (v.skills && v.skills.toLowerCase().includes(query)) ||
+          (v.blood_group && v.blood_group.toLowerCase().includes(query));
+
+        if (!matchesQuery) return false;
+        if (statusFilter !== 'ALL' && v.status !== statusFilter) return false;
+
+        return true;
+      });
+
+      renderFleetGrid(filtered);
+    }
+
+    async function toggleStatus(volId, newStatus) {
+      try {
+        const res = await fetch(`/api/volunteers/${volId}/status`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: newStatus })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast(`Rescuer #${volId} status changed to ${newStatus}`, 'success');
+          loadVolunteers();
+        } else {
+          showToast(data.message || 'Status toggle failed', 'error');
+        }
+      } catch (err) {
+        showToast('Error communicating with server', 'error');
+      }
+    }
+
+    async function completeMission(volId, rescueId) {
+      if (!confirm(`Mark Rescue Mission #${rescueId} as COMPLETED/RESOLVED?\nThis will mark the SOS request as RESOLVED and free the volunteer.`)) {
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/volunteers/${volId}/complete-mission`, {
+          method: 'POST'
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast(`Mission #${rescueId} completed & resolved! Rescuer is now on standby.`, 'success');
+          loadVolunteers();
+        } else {
+          showToast(data.message || 'Mission completion failed', 'error');
+        }
+      } catch (err) {
+        showToast('Error completing mission', 'error');
+      }
+    }
+
+    function openEnrollModal() {
+      document.getElementById('enrollModal').classList.remove('hidden');
+    }
+
+    function closeEnrollModal() {
+      document.getElementById('enrollModal').classList.add('hidden');
+    }
+
+    async function handleEnrollVolunteer(e) {
+      e.preventDefault();
+      const btn = document.getElementById('saveVolBtn');
+      btn.disabled = true;
+      btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Enrolling...`;
+
+      const payload = {
+        name: document.getElementById('volName').value.trim(),
+        phone: document.getElementById('volPhone').value.trim(),
+        blood_group: document.getElementById('volBlood').value,
+        vehicle_type: document.getElementById('volVehicle').value,
+        skills: document.getElementById('volSkills').value.trim(),
+        latitude: parseFloat(document.getElementById('volLat').value),
+        longitude: parseFloat(document.getElementById('volLng').value)
+      };
+
+      try {
+        const res = await fetch('/api/volunteers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast('Volunteer registered successfully to fleet!', 'success');
+          closeEnrollModal();
+          document.getElementById('enrollForm').reset();
+          loadVolunteers();
+        } else {
+          showToast(data.message || 'Enrollment failed', 'error');
+        }
+      } catch (err) {
+        showToast('Error enrolling volunteer', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fa-solid fa-check"></i> Register Rescuer`;
+      }
+    }
+
+    function openLocationModal(volId, lat, lng) {
+      document.getElementById('locVolId').value = volId;
+      document.getElementById('locLat').value = lat;
+      document.getElementById('locLng').value = lng;
+      document.getElementById('locationModal').classList.remove('hidden');
+    }
+
+    function closeLocationModal() {
+      document.getElementById('locationModal').classList.add('hidden');
+    }
+
+    async function handleUpdateLocation(e) {
+      e.preventDefault();
+      const volId = document.getElementById('locVolId').value;
+      const lat = parseFloat(document.getElementById('locLat').value);
+      const lng = parseFloat(document.getElementById('locLng').value);
+
+      try {
+        const res = await fetch(`/api/volunteers/${volId}/location`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ latitude: lat, longitude: lng })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast(`GPS Location updated for Rescuer #${volId}`, 'success');
+          closeLocationModal();
+          loadVolunteers();
+        } else {
+          showToast(data.message || 'Update failed', 'error');
+        }
+      } catch (err) {
+        showToast('Error updating GPS', 'error');
+      }
+    }
+
+    // Initialize on load
+    document.addEventListener('DOMContentLoaded', loadVolunteers);
+  </script>
+</body>
+</html>

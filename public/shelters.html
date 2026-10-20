@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Safe Shelters | GeoResQ-Sync Disaster Management</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome 6 Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #070b14;
+      font-family: 'Inter', sans-serif;
+      color: #e2e8f0;
+      overflow-x: hidden;
+    }
+
+    .glass-nav {
+      background: rgba(13, 21, 39, 0.95);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .glass-card {
+      background: rgba(22, 34, 56, 0.75);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .glass-card:hover {
+      border-color: rgba(56, 189, 248, 0.35);
+      transform: translateY(-2px);
+    }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: rgba(13, 21, 39, 0.5); }
+    ::-webkit-scrollbar-thumb { background: rgba(100, 116, 139, 0.5); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.8); }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased selection:bg-cyan-500 selection:text-black">
+
+  <!-- ========================================================================= -->
+  <!-- TOP NAVIGATION HEADER (SHARED ACROSS ALL DEDICATED PAGES) -->
+  <!-- ========================================================================= -->
+  <header class="glass-nav sticky top-0 z-50 px-4 lg:px-6 py-2.5">
+    <div class="flex flex-col md:flex-row items-center justify-between gap-3">
+      
+      <!-- Brand & Project Title -->
+      <a href="/" class="flex items-center space-x-3 w-full md:w-auto">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-red-500/20 to-cyan-500/20 border border-slate-700 flex items-center justify-center text-cyan-400 text-base shadow-lg shadow-cyan-500/10 shrink-0">
+          <i class="fa-solid fa-satellite-dish"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-base font-black tracking-tight text-white flex items-center gap-1.5">
+              GeoResQ-Sync
+            </h1>
+            <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-400 border border-cyan-500/30">
+              MySQL 8.0 Spatial
+            </span>
+          </div>
+          <p class="text-[10px] text-slate-400">Autonomous Disaster Management & ACID Aid Coordination</p>
+        </div>
+      </a>
+
+      <!-- CENTER: DEDICATED WEB PAGES NAVIGATION -->
+      <nav class="flex items-center bg-slate-900/90 p-1 rounded-xl border border-slate-800 text-xs w-full md:w-auto justify-center overflow-x-auto gap-1">
+        <a href="/" class="px-3.5 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 text-slate-400 hover:text-white transition">
+          <i class="fa-solid fa-map-location-dot"></i>
+          <span>1. Radar</span>
+        </a>
+
+        <a href="/shelters" class="px-3.5 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition bg-cyan-500 text-slate-950 shadow-md">
+          <i class="fa-solid fa-house-chimney-medical"></i>
+          <span>2. Shelters</span>
+        </a>
+
+        <a href="/logistics" class="px-3.5 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 text-slate-400 hover:text-white transition">
+          <i class="fa-solid fa-boxes-packing text-indigo-400"></i>
+          <span>3. Logistics & Donations</span>
+        </a>
+
+        <a href="/volunteers" class="px-3.5 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 text-slate-400 hover:text-white transition">
+          <i class="fa-solid fa-shield-heart text-emerald-400"></i>
+          <span>4. Fleet</span>
+        </a>
+
+        <a href="/lab" class="px-3.5 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 text-slate-400 hover:text-white transition relative">
+          <i class="fa-solid fa-database text-cyan-400"></i>
+          <span>5. MySQL Lab</span>
+        </a>
+
+        <a href="/alerts" class="px-3.5 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 text-slate-400 hover:text-white transition">
+          <i class="fa-solid fa-cloud-bolt text-amber-400"></i>
+          <span>6. Alerts</span>
+        </a>
+      </nav>
+
+      <!-- RIGHT: PRIMARY ACTIONS -->
+      <div class="flex items-center gap-2 w-full md:w-auto justify-end">
+        <button onclick="openRegisterShelterModal()" class="px-3.5 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-xs font-semibold transition flex items-center gap-1.5 shadow-md shadow-cyan-600/30">
+          <i class="fa-solid fa-plus"></i>
+          <span>Register Shelter</span>
+        </button>
+
+        <button onclick="loadShelters()" class="p-1.5 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg border border-slate-700/60 transition" title="Refresh Shelters">
+          <i class="fa-solid fa-rotate text-xs"></i>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ========================================================================= -->
+  <!-- MAIN CONTENT: SHELTERS DASHBOARD -->
+  <!-- ========================================================================= -->
+  <main class="flex-1 max-w-7xl mx-auto w-full p-4 lg:p-8 space-y-6">
+
+    <!-- Top Headline & Overview Banner -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+      <div>
+        <div class="flex items-center gap-2 text-cyan-400 text-xs font-semibold uppercase tracking-wider mb-1">
+          <i class="fa-solid fa-house-chimney-medical"></i>
+          <span>Safe Evacuation Hubs & Relief Camps</span>
+        </div>
+        <h2 class="text-2xl font-black text-white tracking-tight">Safe Shelters Directory & Capacity Radar</h2>
+        <p class="text-slate-400 text-xs mt-1">
+          Real-time intake tracking with MySQL 8.0 spatial indexing. Dynamically adjust evacuee headcounts and verify remaining safety margins.
+        </p>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <a href="/" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold transition flex items-center gap-2 border border-slate-700">
+          <i class="fa-solid fa-satellite text-cyan-400"></i>
+          <span>Open Mission Radar</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Quick Stats Cards Grid -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="glass-card p-4 rounded-xl border border-slate-800">
+        <div class="flex items-center justify-between text-slate-400 text-xs font-semibold">
+          <span>Active Shelters</span>
+          <i class="fa-solid fa-building-shield text-cyan-400"></i>
+        </div>
+        <div class="text-3xl font-black text-white mt-2" id="statTotalShelters">0</div>
+        <span class="text-[11px] text-cyan-400/80 mt-1 block">Safe Zones Active</span>
+      </div>
+
+      <div class="glass-card p-4 rounded-xl border border-slate-800">
+        <div class="flex items-center justify-between text-slate-400 text-xs font-semibold">
+          <span>Total Capacity</span>
+          <i class="fa-solid fa-users text-indigo-400"></i>
+        </div>
+        <div class="text-3xl font-black text-indigo-400 mt-2" id="statTotalCapacity">0</div>
+        <span class="text-[11px] text-slate-400 mt-1 block">Maximum Intake Limit</span>
+      </div>
+
+      <div class="glass-card p-4 rounded-xl border border-slate-800">
+        <div class="flex items-center justify-between text-slate-400 text-xs font-semibold">
+          <span>Current Evacuees</span>
+          <i class="fa-solid fa-person-shelter text-amber-400"></i>
+        </div>
+        <div class="text-3xl font-black text-amber-400 mt-2" id="statCurrentOccupancy">0</div>
+        <span class="text-[11px] text-slate-400 mt-1 block" id="statOccupancyPct">0% Total Occupancy</span>
+      </div>
+
+      <div class="glass-card p-4 rounded-xl border border-slate-800">
+        <div class="flex items-center justify-between text-slate-400 text-xs font-semibold">
+          <span>Available Slots</span>
+          <i class="fa-solid fa-bed text-emerald-400"></i>
+        </div>
+        <div class="text-3xl font-black text-emerald-400 mt-2" id="statAvailableSlots">0</div>
+        <span class="text-[11px] text-emerald-400/80 mt-1 block">Immediate Free Beds</span>
+      </div>
+    </div>
+
+    <!-- Filter & Search Controls -->
+    <div class="glass-card p-3 rounded-xl border border-slate-800 flex flex-col md:flex-row items-center justify-between gap-3">
+      <div class="relative w-full md:w-80">
+        <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-500 text-xs"></i>
+        <input 
+          type="text" 
+          id="searchShelterInput" 
+          oninput="filterShelters()"
+          placeholder="Filter by shelter name, area, or contact..." 
+          class="w-full bg-slate-900 border border-slate-700/80 rounded-lg pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition"
+        >
+      </div>
+
+      <div class="flex items-center gap-2 w-full md:w-auto">
+        <span class="text-xs text-slate-400 font-semibold shrink-0">Filter Status:</span>
+        <select 
+          id="statusFilterSelect" 
+          onchange="filterShelters()"
+          class="bg-slate-900 border border-slate-700/80 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-cyan-500"
+        >
+          <option value="ALL">All Statuses</option>
+          <option value="OPEN">Open (Slots Available)</option>
+          <option value="FULL">Full / At Capacity</option>
+          <option value="INACTIVE">Inactive / Closed</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Shelters List Grid -->
+    <div id="sheltersGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div class="col-span-full text-center py-16 text-slate-500">
+        <i class="fa-solid fa-circle-notch fa-spin text-2xl text-cyan-500 mb-2"></i>
+        <p class="text-sm">Loading registered evacuation shelters...</p>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: REGISTER NEW SHELTER -->
+  <!-- ========================================================================= -->
+  <div id="registerShelterModal" class="fixed inset-0 z-50 hidden bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="glass-card rounded-2xl max-w-lg w-full border border-slate-700 p-6 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="text-base font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-house-chimney-medical text-cyan-400"></i>
+          <span>Register Safe Evacuation Shelter</span>
+        </h3>
+        <button onclick="closeRegisterShelterModal()" class="text-slate-400 hover:text-white">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <form id="shelterForm" onsubmit="handleRegisterShelter(event)" class="space-y-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Shelter / Facility Name *</label>
+          <input type="text" id="newShelterName" required placeholder="e.g. Sylhet Govt Women's College Cyclone Shelter" 
+            class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Physical Address / Landmark *</label>
+          <input type="text" id="newShelterAddress" required placeholder="e.g. Chowhatta, Zindabazar, Sylhet" 
+            class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Latitude (GPS) *</label>
+            <input type="number" step="any" id="newShelterLat" required value="24.8980" 
+              class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Longitude (GPS) *</label>
+            <input type="number" step="any" id="newShelterLng" required value="91.8720" 
+              class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Total Capacity (People) *</label>
+            <input type="number" id="newShelterCapacity" required value="500" min="1" 
+              class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Initial Occupancy</label>
+            <input type="number" id="newShelterOccupancy" value="0" min="0" 
+              class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Contact Officer Name</label>
+            <input type="text" id="newShelterContact" placeholder="e.g. Major Shamsur Rahman" 
+              class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Contact Phone Number</label>
+            <input type="text" id="newShelterPhone" placeholder="e.g. +8801711009988" 
+              class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500">
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+          <button type="button" onclick="closeRegisterShelterModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-lg transition">
+            Cancel
+          </button>
+          <button type="submit" id="saveShelterBtn" class="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-lg transition flex items-center gap-1.5 shadow-md shadow-cyan-600/30">
+            <i class="fa-solid fa-check"></i>
+            <span>Register Shelter</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="fixed bottom-4 right-4 z-50 space-y-2 pointer-events-none"></div>
+
+  <!-- ========================================================================= -->
+  <!-- CLIENT JAVASCRIPT LOGIC -->
+  <!-- ========================================================================= -->
+  <script>
+    let allShelters = [];
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      const bgColors = {
+        success: 'bg-emerald-950/95 border-emerald-500/50 text-emerald-200',
+        error: 'bg-red-950/95 border-red-500/50 text-red-200',
+        info: 'bg-cyan-950/95 border-cyan-500/50 text-cyan-200'
+      };
+
+      toast.className = `p-3 rounded-xl border backdrop-blur-md shadow-xl text-xs font-medium flex items-center gap-2 transform transition-all duration-300 pointer-events-auto ${bgColors[type] || bgColors.info}`;
+      toast.innerHTML = `<i class="fa-solid ${type === 'success' ? 'fa-circle-check text-emerald-400' : type === 'error' ? 'fa-circle-exclamation text-red-400' : 'fa-circle-info text-cyan-400'}"></i> <span>${message}</span>`;
+      
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(10px)';
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+
+    async function loadShelters() {
+      try {
+        const res = await fetch('/api/shelters');
+        const data = await res.json();
+        if (data.success && Array.isArray(data.data)) {
+          allShelters = data.data;
+          updateSheltersStats(allShelters);
+          renderSheltersGrid(allShelters);
+        } else {
+          showToast('Failed to load shelters', 'error');
+        }
+      } catch (err) {
+        console.error('Error fetching shelters:', err);
+        showToast('Network error loading shelters', 'error');
+      }
+    }
+
+    function updateSheltersStats(shelters) {
+      const totalShelters = shelters.length;
+      let totalCapacity = 0;
+      let totalOccupancy = 0;
+
+      shelters.forEach(s => {
+        totalCapacity += Number(s.capacity) || 0;
+        totalOccupancy += Number(s.current_occupancy) || 0;
+      });
+
+      const freeSlots = Math.max(0, totalCapacity - totalOccupancy);
+      const pct = totalCapacity > 0 ? Math.round((totalOccupancy / totalCapacity) * 100) : 0;
+
+      document.getElementById('statTotalShelters').textContent = totalShelters;
+      document.getElementById('statTotalCapacity').textContent = totalCapacity.toLocaleString();
+      document.getElementById('statCurrentOccupancy').textContent = totalOccupancy.toLocaleString();
+      document.getElementById('statAvailableSlots').textContent = freeSlots.toLocaleString();
+      document.getElementById('statOccupancyPct').textContent = `${pct}% Overall Occupancy`;
+    }
+
+    function renderSheltersGrid(shelters) {
+      const container = document.getElementById('sheltersGrid');
+      if (shelters.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-full text-center py-16 text-slate-500">
+            <i class="fa-solid fa-house-circle-xmark text-3xl mb-2"></i>
+            <p class="text-sm">No evacuation shelters found matching the criteria.</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = shelters.map(s => {
+        const capacity = Number(s.capacity) || 1;
+        const occupied = Number(s.current_occupancy) || 0;
+        const available = Math.max(0, capacity - occupied);
+        const pct = Math.min(100, Math.round((occupied / capacity) * 100));
+
+        let progressColor = 'bg-emerald-500';
+        let statusBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">OPEN</span>`;
+
+        if (pct >= 90) {
+          progressColor = 'bg-red-500';
+          statusBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-500/20 text-red-400 border border-red-500/30">FULL</span>`;
+        } else if (pct >= 70) {
+          progressColor = 'bg-amber-500';
+          statusBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">NEAR FULL</span>`;
+        }
+
+        if (s.status === 'INACTIVE') {
+          statusBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-700 text-slate-400 border border-slate-600">INACTIVE</span>`;
+        }
+
+        return `
+          <div class="glass-card rounded-xl p-5 border border-slate-800 flex flex-col justify-between space-y-4">
+            <div>
+              <div class="flex items-start justify-between gap-2">
+                <div>
+                  <h3 class="text-sm font-bold text-white leading-tight">${s.name}</h3>
+                  <p class="text-xs text-slate-400 flex items-center gap-1 mt-1">
+                    <i class="fa-solid fa-location-dot text-slate-500"></i>
+                    <span>${s.address || 'Address on record'}</span>
+                  </p>
+                </div>
+                ${statusBadge}
+              </div>
+
+              <!-- Occupancy Bar -->
+              <div class="mt-4 bg-slate-900/90 rounded-lg p-3 border border-slate-800">
+                <div class="flex items-center justify-between text-xs mb-1.5">
+                  <span class="text-slate-400 font-medium">Capacity Occupancy</span>
+                  <span class="font-bold text-white font-mono">${occupied} / ${capacity} (${pct}%)</span>
+                </div>
+                <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+                  <div class="${progressColor} h-2 rounded-full transition-all duration-500" style="width: ${pct}%"></div>
+                </div>
+                <div class="flex items-center justify-between text-[11px] text-slate-500 mt-2">
+                  <span>Available slots: <strong class="text-emerald-400 font-mono">${available}</strong></span>
+                  <span class="font-mono text-[10px]">POINT(${Number(s.latitude).toFixed(4)}, ${Number(s.longitude).toFixed(4)})</span>
+                </div>
+              </div>
+
+              <!-- Contact & Details -->
+              <div class="mt-3 space-y-1 text-xs text-slate-400 border-t border-slate-800/80 pt-3">
+                <div class="flex items-center justify-between">
+                  <span class="text-slate-500">Contact Person:</span>
+                  <span class="text-slate-200 font-medium">${s.contact_person || 'Disaster Relief Cell'}</span>
+                </div>
+                <div class="flex items-center justify-between">
+                  <span class="text-slate-500">Hotline Phone:</span>
+                  <a href="tel:${s.contact_phone || '+8801811000000'}" class="text-cyan-400 hover:underline font-mono font-medium">
+                    ${s.contact_phone || '+8801811000000'}
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <!-- Fast Headcount Adjustment Actions -->
+            <div class="border-t border-slate-800 pt-3 flex items-center justify-between gap-2">
+              <div class="flex items-center gap-1.5">
+                <button 
+                  onclick="adjustOccupancy(${s.id}, 10)" 
+                  class="px-2.5 py-1 bg-cyan-950/80 hover:bg-cyan-900 text-cyan-300 border border-cyan-800 rounded-lg text-xs font-semibold transition"
+                  title="Register 10 more evacuees arriving"
+                >
+                  +10 Evacuees
+                </button>
+                <button 
+                  onclick="adjustOccupancy(${s.id}, -10)" 
+                  class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-lg text-xs font-semibold transition"
+                  title="Relieve 10 evacuees departing"
+                >
+                  -10
+                </button>
+              </div>
+
+              <a 
+                href="/?targetLat=${s.latitude}&targetLng=${s.longitude}" 
+                class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-lg text-xs font-medium transition flex items-center gap-1"
+                title="Locate on Mission Radar"
+              >
+                <i class="fa-solid fa-map-pin text-cyan-400"></i>
+                <span>Map</span>
+              </a>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function filterShelters() {
+      const query = document.getElementById('searchShelterInput').value.toLowerCase().trim();
+      const statusFilter = document.getElementById('statusFilterSelect').value;
+
+      const filtered = allShelters.filter(s => {
+        const matchesQuery = !query || 
+          (s.name && s.name.toLowerCase().includes(query)) ||
+          (s.address && s.address.toLowerCase().includes(query)) ||
+          (s.contact_person && s.contact_person.toLowerCase().includes(query));
+
+        if (!matchesQuery) return false;
+
+        const capacity = Number(s.capacity) || 1;
+        const occupied = Number(s.current_occupancy) || 0;
+        const isFull = occupied >= capacity;
+
+        if (statusFilter === 'OPEN') return !isFull && s.status !== 'INACTIVE';
+        if (statusFilter === 'FULL') return isFull;
+        if (statusFilter === 'INACTIVE') return s.status === 'INACTIVE';
+
+        return true;
+      });
+
+      renderSheltersGrid(filtered);
+    }
+
+    async function adjustOccupancy(shelterId, delta) {
+      try {
+        const res = await fetch(`/api/shelters/${shelterId}/occupancy`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ delta })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast(`Shelter #${shelterId} occupancy adjusted by ${delta > 0 ? '+' + delta : delta}`, 'success');
+          loadShelters();
+        } else {
+          showToast(data.message || 'Failed to adjust occupancy', 'error');
+        }
+      } catch (err) {
+        showToast('Error communicating with server', 'error');
+      }
+    }
+
+    function openRegisterShelterModal() {
+      document.getElementById('registerShelterModal').classList.remove('hidden');
+    }
+
+    function closeRegisterShelterModal() {
+      document.getElementById('registerShelterModal').classList.add('hidden');
+    }
+
+    async function handleRegisterShelter(e) {
+      e.preventDefault();
+      const btn = document.getElementById('saveShelterBtn');
+      btn.disabled = true;
+      btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Saving...`;
+
+      const payload = {
+        name: document.getElementById('newShelterName').value.trim(),
+        address: document.getElementById('newShelterAddress').value.trim(),
+        latitude: parseFloat(document.getElementById('newShelterLat').value),
+        longitude: parseFloat(document.getElementById('newShelterLng').value),
+        capacity: parseInt(document.getElementById('newShelterCapacity').value),
+        current_occupancy: parseInt(document.getElementById('newShelterOccupancy').value) || 0,
+        contact_person: document.getElementById('newShelterContact').value.trim(),
+        contact_phone: document.getElementById('newShelterPhone').value.trim()
+      };
+
+      try {
+        const res = await fetch('/api/shelters', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast('Shelter registered successfully!', 'success');
+          closeRegisterShelterModal();
+          document.getElementById('shelterForm').reset();
+          loadShelters();
+        } else {
+          showToast(data.message || 'Registration failed', 'error');
+        }
+      } catch (err) {
+        showToast('Error registering shelter', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fa-solid fa-check"></i> Register Shelter`;
+      }
+    }
+
+    // Initialize on load
+    document.addEventListener('DOMContentLoaded', loadShelters);
+  </script>
+</body>
+</html>

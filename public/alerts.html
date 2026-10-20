@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Disaster Early Warnings & Alerts | GeoResQ-Sync</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome 6 Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #070b14;
+      font-family: 'Inter', sans-serif;
+      color: #e2e8f0;
+      overflow-x: hidden;
+    }
+
+    .glass-nav {
+      background: rgba(13, 21, 39, 0.95);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .glass-card {
+      background: rgba(22, 34, 56, 0.75);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .glass-card:hover {
+      border-color: rgba(245, 158, 11, 0.4);
+      transform: translateY(-2px);
+    }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: rgba(13, 21, 39, 0.5); }
+    ::-webkit-scrollbar-thumb { background: rgba(100, 116, 139, 0.5); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.8); }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased selection:bg-amber-500 selection:text-slate-950">
+
+  <!-- ========================================================================= -->
+  <!-- TOP NAVIGATION HEADER (SHARED ACROSS ALL DEDICATED PAGES) -->
+  <!-- ========================================================================= -->
+  <header class="glass-nav sticky top-0 z-50 px-4 lg:px-6 py-2.5">
+    <div class="flex flex-col md:flex-row items-center justify-between gap-3">
+      
+      <!-- Brand & Project Title -->
+      <a href="/" class="flex items-center space-x-3 w-full md:w-auto">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-red-500/20 to-cyan-500/20 border border-slate-700 flex items-center justify-center text-cyan-400 text-base shadow-lg shadow-cyan-500/10 shrink-0">
+          <i class="fa-solid fa-satellite-dish"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-base font-black tracking-tight text-white flex items-center gap-1.5">
+              GeoResQ-Sync
+            </h1>
+            <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30">
+              Early Warning
+            </span>
+          </div>
+          <p class="text-[10px] text-slate-400">Autonomous Disaster Management & ACID Aid Coordination</p>
+        </div>
+      </a>
+
+      <!-- CENTER: DEDICATED WEB PAGES NAVIGATION -->
+      <nav class="flex items-center bg-slate-900/90 p-1 rounded-xl border border-slate-800 text-xs w-full md:w-auto justify-center overflow-x-auto gap-1">
+        <a href="/" class="px-3.5 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 text-slate-400 hover:text-white transition">
+          <i class="fa-solid fa-map-location-dot"></i>
+          <span>1. Radar</span>
+        </a>
+
+        <a href="/shelters" class="px-3.5 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 text-slate-400 hover:text-white transition">
+          <i class="fa-solid fa-house-chimney-medical text-cyan-400"></i>
+          <span>2. Shelters</span>
+        </a>
+
+        <a href="/logistics" class="px-3.5 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 text-slate-400 hover:text-white transition">
+          <i class="fa-solid fa-boxes-packing text-indigo-400"></i>
+          <span>3. Logistics & Donations</span>
+        </a>
+
+        <a href="/volunteers" class="px-3.5 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 text-slate-400 hover:text-white transition">
+          <i class="fa-solid fa-shield-heart text-emerald-400"></i>
+          <span>4. Fleet</span>
+        </a>
+
+        <a href="/lab" class="px-3.5 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 text-slate-400 hover:text-white transition relative">
+          <i class="fa-solid fa-database text-cyan-400"></i>
+          <span>5. MySQL Lab</span>
+        </a>
+
+        <a href="/alerts" class="px-3.5 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition bg-cyan-500 text-slate-950 shadow-md">
+          <i class="fa-solid fa-cloud-bolt"></i>
+          <span>6. Alerts</span>
+        </a>
+      </nav>
+
+      <!-- RIGHT: PRIMARY ACTIONS -->
+      <div class="flex items-center gap-2 w-full md:w-auto justify-end">
+        <button onclick="syncFeeds()" id="syncBtn" class="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-500 text-slate-950 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-amber-600/30">
+          <i class="fa-solid fa-arrows-rotate"></i>
+          <span>Sync Live Feeds</span>
+        </button>
+
+        <button onclick="openBroadcastModal()" class="px-3.5 py-1.5 bg-red-600 hover:bg-red-500 text-white rounded-lg text-xs font-semibold transition flex items-center gap-1.5 shadow-md shadow-red-600/30">
+          <i class="fa-solid fa-bullhorn"></i>
+          <span>Broadcast Alert</span>
+        </button>
+
+        <button onclick="loadAlerts()" class="p-1.5 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg border border-slate-700/60 transition" title="Refresh Bulletins">
+          <i class="fa-solid fa-rotate text-xs"></i>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ========================================================================= -->
+  <!-- MAIN CONTENT: DISASTER EARLY WARNINGS -->
+  <!-- ========================================================================= -->
+  <main class="flex-1 max-w-7xl mx-auto w-full p-4 lg:p-8 space-y-6">
+
+    <!-- Top Headline & Overview Banner -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+      <div>
+        <div class="flex items-center gap-2 text-amber-400 text-xs font-semibold uppercase tracking-wider mb-1">
+          <i class="fa-solid fa-tower-broadcast"></i>
+          <span>Meteorological Radar & Geoscience Monitoring</span>
+        </div>
+        <h2 class="text-2xl font-black text-white tracking-tight">Disaster Alerts & Early Warning Centre</h2>
+        <p class="text-slate-400 text-xs mt-1">
+          Real-time ingestion of USGS seismological events, Bangladesh Flood Forecasting & Warning Centre (FFWC) river basin alerts, and heavy precipitation bulletins.
+        </p>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <span class="px-3 py-1.5 rounded-lg bg-amber-950/80 border border-amber-800/80 text-amber-300 font-mono text-xs flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+          <span>Cron Worker Active (15m Interval)</span>
+        </span>
+      </div>
+    </div>
+
+    <!-- Quick Stats Cards Grid -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="glass-card p-4 rounded-xl border border-slate-800">
+        <div class="flex items-center justify-between text-slate-400 text-xs font-semibold">
+          <span>Active Bulletins</span>
+          <i class="fa-solid fa-bell text-amber-400"></i>
+        </div>
+        <div class="text-3xl font-black text-white mt-2" id="statTotalAlerts">0</div>
+        <span class="text-[11px] text-amber-400/80 mt-1 block">Live early warnings</span>
+      </div>
+
+      <div class="glass-card p-4 rounded-xl border border-slate-800">
+        <div class="flex items-center justify-between text-slate-400 text-xs font-semibold">
+          <span>Critical Severity</span>
+          <i class="fa-solid fa-triangle-exclamation text-red-400"></i>
+        </div>
+        <div class="text-3xl font-black text-red-400 mt-2" id="statCriticalAlerts">0</div>
+        <span class="text-[11px] text-red-400/80 mt-1 block">Immediate danger zones</span>
+      </div>
+
+      <div class="glass-card p-4 rounded-xl border border-slate-800">
+        <div class="flex items-center justify-between text-slate-400 text-xs font-semibold">
+          <span>River Flood Warnings</span>
+          <i class="fa-solid fa-water text-cyan-400"></i>
+        </div>
+        <div class="text-3xl font-black text-cyan-400 mt-2" id="statFloodAlerts">0</div>
+        <span class="text-[11px] text-slate-400 mt-1 block">Surma / Kushiyara Basin</span>
+      </div>
+
+      <div class="glass-card p-4 rounded-xl border border-slate-800">
+        <div class="flex items-center justify-between text-slate-400 text-xs font-semibold">
+          <span>Seismic Feeds</span>
+          <i class="fa-solid fa-volcano text-indigo-400"></i>
+        </div>
+        <div class="text-3xl font-black text-indigo-400 mt-2" id="statEarthquakeAlerts">0</div>
+        <span class="text-[11px] text-indigo-400/80 mt-1 block">USGS Real-time API</span>
+      </div>
+    </div>
+
+    <!-- Filter & Search Controls -->
+    <div class="glass-card p-3 rounded-xl border border-slate-800 flex flex-col md:flex-row items-center justify-between gap-3">
+      <div class="relative w-full md:w-80">
+        <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-500 text-xs"></i>
+        <input 
+          type="text" 
+          id="searchAlertInput" 
+          oninput="filterAlerts()"
+          placeholder="Filter by title, location, or source..." 
+          class="w-full bg-slate-900 border border-slate-700/80 rounded-lg pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 transition"
+        >
+      </div>
+
+      <div class="flex items-center gap-2 w-full md:w-auto">
+        <span class="text-xs text-slate-400 font-semibold shrink-0">Severity:</span>
+        <select 
+          id="severityFilterSelect" 
+          onchange="filterAlerts()"
+          class="bg-slate-900 border border-slate-700/80 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500"
+        >
+          <option value="ALL">All Severities</option>
+          <option value="CRITICAL">Critical</option>
+          <option value="HIGH">High</option>
+          <option value="MODERATE">Moderate</option>
+          <option value="ADVISORY">Advisory</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Alerts List Grid -->
+    <div id="alertsGrid" class="space-y-4">
+      <div class="text-center py-16 text-slate-500">
+        <i class="fa-solid fa-circle-notch fa-spin text-2xl text-amber-500 mb-2"></i>
+        <p class="text-sm">Connecting to meteorological alert feeds...</p>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: BROADCAST EMERGENCY BULLETIN -->
+  <!-- ========================================================================= -->
+  <div id="broadcastModal" class="fixed inset-0 z-50 hidden bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="glass-card rounded-2xl max-w-lg w-full border border-slate-700 p-6 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="text-base font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-bullhorn text-red-400"></i>
+          <span>Broadcast Emergency Disaster Alert</span>
+        </h3>
+        <button onclick="closeBroadcastModal()" class="text-slate-400 hover:text-white">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <form id="broadcastForm" onsubmit="handleBroadcastAlert(event)" class="space-y-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Alert Title *</label>
+          <input type="text" id="alertTitle" required placeholder="e.g. Severe Flash Flood Warning: Surma River Overflow" 
+            class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Disaster Type *</label>
+            <select id="alertType" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500">
+              <option value="FLOOD">Flood / Water Surge</option>
+              <option value="EARTHQUAKE">Earthquake / Tremor</option>
+              <option value="CYCLONE">Cyclone / High Winds</option>
+              <option value="WEATHER">Heavy Rainfall / Thunderstorm</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Severity Level *</label>
+            <select id="alertSeverity" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500">
+              <option value="CRITICAL">CRITICAL (Danger Level)</option>
+              <option value="HIGH">HIGH (Severe Warning)</option>
+              <option value="MODERATE">MODERATE (Watch)</option>
+              <option value="ADVISORY">ADVISORY (Precaution)</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Meteorological Details & Instructions *</label>
+          <textarea id="alertDetails" required rows="3" placeholder="Water levels have risen 1.2m above danger level. Immediate evacuation advised for low-lying residents..." 
+            class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500"></textarea>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Center Latitude</label>
+            <input type="number" step="any" id="alertLat" value="24.8949" required 
+              class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Center Longitude</label>
+            <input type="number" step="any" id="alertLng" value="91.8687" required 
+              class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Affected Radius (Meters)</label>
+            <input type="number" id="alertRadius" value="15000" required 
+              class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Source Agency</label>
+            <input type="text" id="alertSource" value="Disaster Relief Command HQ" 
+              class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500">
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+          <button type="button" onclick="closeBroadcastModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-lg transition">
+            Cancel
+          </button>
+          <button type="submit" id="saveAlertBtn" class="px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded-lg transition flex items-center gap-1.5 shadow-md shadow-red-600/30">
+            <i class="fa-solid fa-paper-plane"></i>
+            <span>Broadcast Bulletin</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="fixed bottom-4 right-4 z-50 space-y-2 pointer-events-none"></div>
+
+  <!-- ========================================================================= -->
+  <!-- CLIENT JAVASCRIPT LOGIC -->
+  <!-- ========================================================================= -->
+  <script>
+    let alerts = [];
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      const bgColors = {
+        success: 'bg-emerald-950/95 border-emerald-500/50 text-emerald-200',
+        error: 'bg-red-950/95 border-red-500/50 text-red-200',
+        info: 'bg-amber-950/95 border-amber-500/50 text-amber-200'
+      };
+
+      toast.className = `p-3 rounded-xl border backdrop-blur-md shadow-xl text-xs font-medium flex items-center gap-2 transform transition-all duration-300 pointer-events-auto ${bgColors[type] || bgColors.info}`;
+      toast.innerHTML = `<i class="fa-solid ${type === 'success' ? 'fa-circle-check text-emerald-400' : type === 'error' ? 'fa-circle-exclamation text-red-400' : 'fa-circle-info text-amber-400'}"></i> <span>${message}</span>`;
+      
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(10px)';
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+
+    async function loadAlerts() {
+      try {
+        const res = await fetch('/api/alerts');
+        const data = await res.json();
+        if (data.success && Array.isArray(data.data)) {
+          alerts = data.data;
+          updateAlertStats(alerts);
+          renderAlertsGrid(alerts);
+        } else {
+          showToast('Failed to load alerts', 'error');
+        }
+      } catch (err) {
+        console.error('Error fetching alerts:', err);
+        showToast('Network error loading alerts', 'error');
+      }
+    }
+
+    function updateAlertStats(items) {
+      const total = items.length;
+      const critical = items.filter(a => a.severity === 'CRITICAL').length;
+      const flood = items.filter(a => a.disaster_type === 'FLOOD').length;
+      const quake = items.filter(a => a.disaster_type === 'EARTHQUAKE').length;
+
+      document.getElementById('statTotalAlerts').textContent = total;
+      document.getElementById('statCriticalAlerts').textContent = critical;
+      document.getElementById('statFloodAlerts').textContent = flood;
+      document.getElementById('statEarthquakeAlerts').textContent = quake;
+    }
+
+    function renderAlertsGrid(items) {
+      const container = document.getElementById('alertsGrid');
+      if (items.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-16 text-slate-500">
+            <i class="fa-solid fa-shield-cat text-3xl mb-2"></i>
+            <p class="text-sm">No active alerts recorded. All monitored zones are calm.</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = items.map(a => {
+        let badgeStyle = 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30';
+        let leftBar = 'border-l-4 border-cyan-500';
+
+        if (a.severity === 'CRITICAL') {
+          badgeStyle = 'bg-red-500/20 text-red-400 border-red-500/40 animate-pulse';
+          leftBar = 'border-l-4 border-red-500';
+        } else if (a.severity === 'HIGH') {
+          badgeStyle = 'bg-amber-500/20 text-amber-400 border-amber-500/30';
+          leftBar = 'border-l-4 border-amber-500';
+        }
+
+        let typeIcon = 'fa-triangle-exclamation';
+        if (a.disaster_type === 'FLOOD') typeIcon = 'fa-water text-cyan-400';
+        else if (a.disaster_type === 'EARTHQUAKE') typeIcon = 'fa-volcano text-red-400';
+        else if (a.disaster_type === 'CYCLONE') typeIcon = 'fa-hurricane text-indigo-400';
+        else if (a.disaster_type === 'WEATHER') typeIcon = 'fa-cloud-showers-heavy text-amber-400';
+
+        return `
+          <div class="glass-card rounded-xl p-5 border border-slate-800 ${leftBar} space-y-3">
+            <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
+              <div class="flex items-start gap-3">
+                <div class="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-base shrink-0 mt-0.5">
+                  <i class="fa-solid ${typeIcon}"></i>
+                </div>
+                <div>
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <h3 class="text-sm font-bold text-white">${a.title}</h3>
+                    <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${badgeStyle}">
+                      ${a.severity}
+                    </span>
+                    <span class="px-2 py-0.5 rounded bg-slate-800/80 text-slate-300 font-mono text-[10px] border border-slate-700">
+                      ${a.disaster_type}
+                    </span>
+                  </div>
+                  <p class="text-[11px] text-slate-400 flex items-center gap-2 mt-1">
+                    <span>Source: <strong class="text-slate-300">${a.source || 'Meteorological Agency'}</strong></span>
+                    <span>&bull;</span>
+                    <span class="font-mono text-slate-500">${a.created_at ? new Date(a.created_at).toLocaleString() : 'Live'}</span>
+                  </p>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-2 shrink-0">
+                <a 
+                  href="/?targetLat=${a.latitude || 24.8949}&targetLng=${a.longitude || 91.8687}" 
+                  class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-medium transition flex items-center gap-1.5"
+                  title="Locate Zone on Mission Radar"
+                >
+                  <i class="fa-solid fa-satellite text-amber-400"></i>
+                  <span>Radar Map</span>
+                </a>
+              </div>
+            </div>
+
+            <p class="text-xs text-slate-300 leading-relaxed bg-slate-900/60 p-3 rounded-lg border border-slate-800/80">
+              ${a.details || 'Meteorological bulletin broadcast for field emergency responders.'}
+            </p>
+
+            <div class="flex items-center justify-between text-[11px] text-slate-400 pt-1 font-mono">
+              <span>Coordinates: POINT(${Number(a.latitude || 0).toFixed(4)}, ${Number(a.longitude || 0).toFixed(4)})</span>
+              <span>Impact Radius: ${(Number(a.radius_meters || 10000) / 1000).toFixed(1)} km</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function filterAlerts() {
+      const query = document.getElementById('searchAlertInput').value.toLowerCase().trim();
+      const severityFilter = document.getElementById('severityFilterSelect').value;
+
+      const filtered = alerts.filter(a => {
+        const matchesQuery = !query || 
+          (a.title && a.title.toLowerCase().includes(query)) ||
+          (a.details && a.details.toLowerCase().includes(query)) ||
+          (a.source && a.source.toLowerCase().includes(query));
+
+        if (!matchesQuery) return false;
+        if (severityFilter !== 'ALL' && a.severity !== severityFilter) return false;
+
+        return true;
+      });
+
+      renderAlertsGrid(filtered);
+    }
+
+    async function syncFeeds() {
+      const btn = document.getElementById('syncBtn');
+      btn.disabled = true;
+      btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Syncing Feeds...`;
+
+      try {
+        const res = await fetch('/api/alerts/sync', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          showToast(data.message || 'USGS & Meteorological feeds synced!', 'success');
+          loadAlerts();
+        } else {
+          showToast(data.message || 'Sync failed', 'error');
+        }
+      } catch (err) {
+        showToast('Error syncing meteorological feeds', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fa-solid fa-arrows-rotate"></i> Sync Live Feeds`;
+      }
+    }
+
+    function openBroadcastModal() {
+      document.getElementById('broadcastModal').classList.remove('hidden');
+    }
+
+    function closeBroadcastModal() {
+      document.getElementById('broadcastModal').classList.add('hidden');
+    }
+
+    async function handleBroadcastAlert(e) {
+      e.preventDefault();
+      const btn = document.getElementById('saveAlertBtn');
+      btn.disabled = true;
+      btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Broadcasting...`;
+
+      const payload = {
+        title: document.getElementById('alertTitle').value.trim(),
+        disaster_type: document.getElementById('alertType').value,
+        severity: document.getElementById('alertSeverity').value,
+        details: document.getElementById('alertDetails').value.trim(),
+        latitude: parseFloat(document.getElementById('alertLat').value),
+        longitude: parseFloat(document.getElementById('alertLng').value),
+        radius_meters: parseInt(document.getElementById('alertRadius').value) || 15000,
+        source: document.getElementById('alertSource').value.trim()
+      };
+
+      try {
+        const res = await fetch('/api/alerts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast('Emergency alert broadcasted successfully!', 'success');
+          closeBroadcastModal();
+          document.getElementById('broadcastForm').reset();
+          loadAlerts();
+        } else {
+          showToast(data.message || 'Broadcast failed', 'error');
+        }
+      } catch (err) {
+        showToast('Error broadcasting alert', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> Broadcast Bulletin`;
+      }
+    }
+
+    // Initialize on load
+    document.addEventListener('DOMContentLoaded', loadAlerts);
+  </script>
+</body>
+</html>
