@@ -1,56 +1,59 @@
-# 🛰️ GeoResQ-Sync
-### Autonomous Geospatial Disaster Response & Relief Coordination Engine
+# 🛰️ GeoResQ-Sync v2.0
+### Autonomous Geospatial Disaster Response, Evacuation & ACID Aid Coordination Engine
 
-> **GeoResQ-Sync is an autonomous disaster coordinator powered by MySQL 8.0 Spatial GIS. It leverages `ST_Distance_Sphere` to detect nearest volunteers within 5km, automates live USGS earthquake alerts, and ensures zero-deficit relief dispatch through strict ACID transactions and Leaflet.js mapping.**
+> **GeoResQ-Sync is an autonomous disaster coordinator powered by MySQL 8.0 Spatial GIS. It leverages `ST_Distance_Sphere` to detect nearest volunteers and safe evacuation shelters within 5–15km, automates live USGS earthquake & flood alerts, handles crowdsourced donor contributions, and guarantees zero-deficit relief dispatch through strict ACID transactions and Leaflet.js mapping.**
 
 ---
 
 ## 📌 Project Overview
-**GeoResQ-Sync** is a pure software-based disaster management and localized humanitarian rescue platform. It completely bypasses the need for proprietary IoT/hardware beacons by utilizing the native **MySQL 8.0 Spatial GIS Engine**, calculating spherical Earth surface geometry directly within database queries to pinpoint and dispatch the closest community volunteers during natural disasters (such as flash floods, cyclones, and earthquakes).
+**GeoResQ-Sync** is a pure software-based disaster management and localized humanitarian rescue platform. It completely bypasses the need for proprietary IoT/hardware beacons by utilizing the native **MySQL 8.0 Spatial GIS Engine**, calculating spherical Earth surface geometry directly within database queries to pinpoint and dispatch the closest community volunteers and guide victims to open evacuation shelters during natural disasters (such as flash floods, cyclones, and earthquakes).
 
 ---
 
 ## 🛠️ Key Architectural Highlights
 
-* **Geospatial Distance Calculation (`ST_Distance_Sphere`):** Computes precise great-circle distance (in meters and kilometers) on Earth's surface between victims and volunteers within a 5,000m radius directly inside MySQL.
-* **ACID Inventory Logistics:** Guarantees zero stock deficit during emergency aid distribution using pessimistic row-level locking (`SELECT ... FOR UPDATE`), transaction rollbacks, and database audit logs (`relief_dispatches`).
-* **Automated Early-Warning Feeds:** Integrated background cron worker continuously polls real-time seismic event feeds from the **USGS Earthquake API** and writes updates to the database.
-* **Advanced MySQL Schema Objects:** Includes relational tables with foreign key cascades, **Spatial Indexes**, **Database Views** (`vw_active_rescue_missions`, `vw_relief_inventory_status`), **Stored Procedures** (`sp_find_nearest_volunteers`, `sp_dispatch_relief_acid`), and automated **Triggers** (`trg_auto_update_sos_on_volunteer_assign`).
-* **Interactive Frontend Radar:** Dark glassmorphic interface powered by **Leaflet.js**, featuring live coordinate picking, dynamic radius perimeters, emergency queues, and multi-layer map switching.
+* **Geospatial Distance Calculation (`ST_Distance_Sphere`):** Computes precise great-circle distance (in meters and kilometers) on Earth's surface between victims, volunteers, and evacuation shelters within a 5,000–15,000m perimeter directly inside MySQL.
+* **Safe Evacuation Shelters:** Tracks live shelter capacity, occupancy constraints (`CHECK (current_occupancy <= capacity)`), and medical facilities, rendering instant routes on Leaflet.js.
+* **ACID Inventory Logistics Linked to SOS:** Guarantees zero stock deficit during emergency aid distribution using pessimistic row-level locking (`SELECT ... FOR UPDATE`), transaction rollbacks, and database audit logs (`relief_dispatches`) linked to specific SOS incidents.
+* **Crowdsourced Donor Contributions:** Public donors pledge emergency relief supplies; central warehouse approval automatically restocks inventory via database triggers.
+* **Volunteer Fleet Capabilities:** Tracks specialized rescue equipment (Boats, Ambulances), skills (Diver, Paramedic), blood groups, and enables one-click mission completion (`RESOLVED`).
+* **Automated Early-Warning Feeds:** Integrated background cron worker continuously polls real-time seismic event feeds from the **USGS Earthquake API** and BMD/FFWC flood warnings into the database.
+* **Advanced MySQL Schema Objects:** Includes 8 relational tables with foreign key cascades, **Spatial Indexes**, 3 **Database Views** (`vw_active_rescue_missions`, `vw_relief_inventory_status`, `vw_shelters_overview`), 3 **Stored Procedures** (`sp_find_nearest_volunteers`, `sp_find_nearest_shelters`, `sp_dispatch_relief_acid`), and automated **Triggers** (`trg_auto_update_sos_on_volunteer_assign`, `trg_increase_inventory_on_donation_approved`).
+* **Interactive Frontend Radar:** Dark glassmorphic interface powered by **Leaflet.js**, featuring live coordinate picking, dynamic radius perimeters, emergency queues, donor portals, and multi-layer map switching.
 
 ---
 
 ## 🗂️ Tech Stack
-* **Database:** MySQL 8.0+ / MariaDB (Spatial GIS Engine enabled via XAMPP)
-* **Backend:** Node.js, Express.js, `mysql2/promise`, `node-cron`, `cors`
+* **Database:** MySQL 8.0+ / MariaDB (Spatial GIS Engine enabled via XAMPP or Native MySQL)
+* **Backend:** Node.js, Express.js, `mysql2/promise`, `bcryptjs`, `jsonwebtoken`, `node-cron`, `cors`
 * **Frontend:** Vanilla JavaScript (ES6+), Leaflet.js, Tailwind CSS (CDN), FontAwesome 6
-* **External APIs:** USGS Global Earthquake GeoJSON Feed
+* **External APIs:** USGS Global Earthquake GeoJSON Feed & Meteorological Flood Early-Warning Feeds
 
 ---
 
 ## 📋 System Prerequisites
 Before running the application on your computer, ensure you have:
 1. **Node.js** (v18.0.0 or higher) — [Download Node.js](https://nodejs.org/)
-2. **XAMPP** (for Apache & MySQL) — [Download XAMPP](https://www.apachefriends.org/)
+2. **XAMPP** or **MySQL 8.0 Server** (running on port 3306)
 3. A modern web browser (Google Chrome, Microsoft Edge, Brave, or Firefox)
 
 ---
 
-## 🚀 5-Minute Quickstart & Installation Guide
+## 🚀 Quickstart & Installation Guide
 
 ### Step 1: Start MySQL in XAMPP
 1. Open the **XAMPP Control Panel**.
-2. Click **Start** next to **Apache** and **MySQL** (both should turn green).
+2. Click **Start** next to **MySQL** (should turn green on port 3306).
 
 ### Step 2: Import Database Schema
 1. Open your browser and navigate to:  
    👉 `http://localhost/phpmyadmin`
 2. Click on the **SQL** tab in the top navigation bar.
 3. Open the `schema.sql` file from this project in any text editor, copy all of its content, paste it into the phpMyAdmin SQL text box, and click **Go**.  
-   *(This automatically creates `disaster_rescue_db`, all 6 core tables, Spatial Indexes, Views, Stored Procedures, Triggers, and sample seed data for testing.)*
+   *(This automatically creates `disaster_rescue_db`, all 8 core tables, Spatial Indexes, Views, Stored Procedures, Triggers, and sample seed data for testing.)*
 
 ### Step 3: Configure Environment Variables
-Verify or create a `.env` file in the project root directory with standard XAMPP defaults:
+Verify or create a `.env` file in the project root directory:
 ```env
 PORT=5000
 DB_HOST=localhost
@@ -59,23 +62,18 @@ DB_PASSWORD=
 DB_NAME=disaster_rescue_db
 DB_PORT=3306
 CRON_SCHEDULE=*/30 * * * *
+JWT_SECRET=disaster_rescue_jwt_secret_key_2026
 ```
-*(Note: XAMPP's default MySQL root password is empty.)*
 
 ### Step 4: Install Dependencies & Run Server
-1. Open your Terminal / Command Prompt (CMD) inside the project folder:
-   ```cmd
-   cd /d E:\disaster-rescue-backend
-   ```
-2. Install the necessary NPM dependencies:
+1. Open your Terminal inside the project folder:
    ```cmd
    npm install
    ```
-3. Start the application:
+2. Start the application:
    ```cmd
    npm run dev
    ```
-   *(Alternatively, run `npm start`)*
 
 Once started, you will see:
 ```text
@@ -90,72 +88,45 @@ Launch your browser and visit:
 
 ---
 
-## 🧪 Comprehensive Testing Scenarios (For Evaluators & Testers)
+## 📡 RESTful API Reference
+
+| Module | Method | Endpoint | Description |
+|---|---|---|---|
+| **Auth** | `POST` | `/api/auth/register` | Register new user (Victim, Volunteer, Donor, Admin) |
+| **Auth** | `POST` | `/api/auth/login` | Authenticate user & receive JWT token |
+| **Auth** | `GET` | `/api/auth/me` | Fetch authenticated profile & role info |
+| **Shelters** | `GET` | `/api/shelters` | List all evacuation shelters & available slots |
+| **Shelters** | `GET` | `/api/shelters/nearest?lat=..&lng=..&radius=10000` | **MySQL Spatial:** Find nearest shelters using `ST_Distance_Sphere` |
+| **Shelters** | `POST` | `/api/shelters` | Register a new safe shelter (Admin) |
+| **Shelters** | `PATCH` | `/api/shelters/:id/occupancy` | Adjust shelter occupancy (+/- evacuees) |
+| **SOS** | `POST` | `/api/sos` | Create an SOS request with Spatial `POINT` |
+| **SOS** | `GET` | `/api/sos` | Retrieve all SOS requests (optional filter `?status=PENDING`) |
+| **SOS** | `GET` | `/api/sos/:id/nearest-volunteers?radius=5000` | Fetch nearest available volunteers using `ST_Distance_Sphere` |
+| **SOS** | `GET` | `/api/sos/:id/nearest-shelters?radius=15000` | Fetch closest safe evacuation shelter for this SOS incident |
+| **SOS** | `POST` | `/api/sos/:id/assign` | Assign volunteer fleet to an SOS incident |
+| **SOS** | `PATCH` | `/api/sos/:id/status` | Update SOS status (`IN_PROGRESS`, `RESOLVED`) |
+| **Volunteers** | `GET` | `/api/volunteers` | List all volunteers, skills, vehicles & assigned missions |
+| **Volunteers** | `PUT` | `/api/volunteers/:id/location` | Update volunteer live GPS location (`POINT`) |
+| **Volunteers** | `PATCH` | `/api/volunteers/:id/status` | Toggle status (`AVAILABLE`, `BUSY`, `OFFLINE`) |
+| **Volunteers** | `POST` | `/api/volunteers/:id/complete-mission` | Complete rescue mission & mark SOS as `RESOLVED` |
+| **Relief** | `POST` | `/api/relief/dispatch` | **ACID Transaction:** Deduct warehouse stock & record audit log linked to SOS |
+| **Relief** | `GET` | `/api/relief/inventory` | View current warehouse stock quantities |
+| **Relief** | `POST` | `/api/relief/donations` | Pledge crowdsourced relief aid (Donor portal) |
+| **Relief** | `GET` | `/api/relief/donations` | View public relief contributions list |
+| **Relief** | `PATCH` | `/api/relief/donations/:id/approve` | **Admin:** Approve donation & atomically increment inventory |
+| **Alerts** | `GET` | `/api/alerts` | Get automated earthquake and disaster warnings |
+| **Alerts** | `POST` | `/api/alerts/sync` | Manually sync live USGS and flood feeds |
+
+---
+
+## 🧪 Comprehensive Evaluation Scenarios
 
 | Test Case | How to Test | Expected Behavior |
 |---|---|---|
-| **1. Nearest Volunteer Radar (Spatial SQL)** | In the left panel, click on **"Rafiqul Islam (CRITICAL)"**. | The Leaflet map smoothly pans to Sylhet Sadar flood zone with a 5km cyan perimeter circle. Below, the system dynamically calculates distances using `ST_Distance_Sphere`: **Tanvir Ahmed (73.26m)** and **Nusrat Jahan (1.5km)**. |
-| **2. Volunteer Assignment** | Click the **"Assign"** button next to Tanvir Ahmed. | The volunteer status updates to `BUSY`, and the SOS status switches from `PENDING` to `ASSIGNED` via database update/trigger. |
-| **3. ACID Relief Dispatch (Zero Deficit)** | Click **"Dispatch Aid (ACID)"** on the top right. Select a team and 10 units of an item, then submit. | Executes pessimistic row locking (`SELECT ... FOR UPDATE`), decrements inventory, and records an entry in `relief_dispatches`. If requested quantity exceeds stock, the database transaction automatically rolls back. |
-| **4. Submit New SOS Request** | Click **"Send SOS Request"** or click anywhere on the interactive map to pick coordinates, then submit. | Saves coordinates as native MySQL `POINT(lng, lat)`, adds a glowing red marker to the map, and queues the emergency incident. |
-| **5. Direct Stored Procedure Test** | In phpMyAdmin SQL tab, execute: `CALL sp_find_nearest_volunteers(1, 5000);` | Directly invokes the database stored procedure and outputs the spatial calculation results table. |
-| **6. Database Views Verification** | In phpMyAdmin SQL tab, execute: `SELECT * FROM vw_relief_inventory_status;` | Returns stock health analytics with calculated categories (`SUFFICIENT`, `CRITICAL LOW`, `OUT OF STOCK`). |
-
----
-
-## 📡 RESTful API Reference
-
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/` | Serves the interactive visual web dashboard |
-| `GET` | `/api` | API health check & endpoint documentation |
-| `POST` | `/api/sos` | Create an SOS request with Spatial `POINT` |
-| `GET` | `/api/sos` | Retrieve all SOS requests (optional filter `?status=PENDING`) |
-| `GET` | `/api/sos/:id/nearest-volunteers?radius=5000` | Fetch nearest available volunteers using `ST_Distance_Sphere` |
-| `POST` | `/api/sos/:id/assign` | Assign a volunteer team to an SOS incident |
-| `POST` | `/api/relief/dispatch` | **ACID Transaction:** Deduct warehouse inventory & write audit log |
-| `GET` | `/api/relief/inventory` | View current warehouse stock quantities |
-| `GET` | `/api/relief/dispatches` | View relief dispatch audit log history |
-| `PUT` | `/api/volunteers/:id/location` | Update volunteer live GPS location (`POINT`) |
-| `GET` | `/api/alerts` | Get automated earthquake and disaster warnings |
-
----
-
-## 📁 Repository Structure
-```text
-GeoResQ-Sync/
-├── schema.sql                      # Complete MySQL 8.0+ DDL, Indexes, Views, Procedures, Triggers
-├── package.json                    # Project metadata & dependencies
-├── .env.example                    # Configuration template
-├── README.md                       # Comprehensive setup & testing documentation
-├── public/
-│   └── index.html                  # Glassmorphic Leaflet.js Frontend Dashboard
-└── src/
-    ├── server.js                   # Express application entrypoint
-    ├── config/
-    │   └── db.js                   # MySQL2 connection pool setup
-    ├── controllers/
-    │   ├── sosController.js        # Spatial queries & SOS management
-    │   ├── reliefController.js     # ACID transaction & inventory distribution
-    │   ├── volunteerController.js  # Live volunteer GPS location updates
-    │   └── alertController.js      # External alert handlers
-    ├── routes/
-    │   ├── sosRoutes.js
-    │   ├── reliefRoutes.js
-    │   ├── volunteerRoutes.js
-    │   └── alertRoutes.js
-    └── services/
-        └── cronService.js          # Scheduled polling worker for USGS live feeds
-```
-
----
-
-## 👥 Sharing with Teammates
-When sharing this project as a ZIP archive:
-* Exclude the `node_modules` folder to keep the archive under **1 MB**.
-* Recipients only need to run `npm install` after extracting to download all required packages.
-
----
-
-## 📄 License
-This project is open-source and developed for academic database evaluation and disaster relief innovation.
+| **1. Nearest Volunteer Radar (Spatial GIS)** | In the Radar view, click on **"Rafiqul Islam (CRITICAL)"**. | The Leaflet map smoothly pans to the Sylhet flood zone with a 5km perimeter. Below, MySQL calculates distances using `ST_Distance_Sphere`: **Tanvir Ahmed (73.26m)**. |
+| **2. Evacuation Shelter Spatial Routing** | In the Radar view, switch sub-tab to **"Safe Evacuation Shelter"** or open the **"Shelters"** tab. | Displays closest shelters (e.g., Sylhet Govt. Pilot High School Shelter), calculates remaining beds, and draws trajectory line. |
+| **3. Volunteer Assignment & Auto Trigger** | Click **"Assign"** next to a volunteer. | Volunteer status updates to `BUSY`, and database trigger `trg_auto_update_sos_on_volunteer_assign` automatically updates SOS status from `PENDING` to `ASSIGNED`. |
+| **4. ACID Relief Dispatch (Zero Deficit)** | Click **"Dispatch Aid"** on the top right. Select an SOS incident, team, and item. | Executes pessimistic locking (`SELECT ... FOR UPDATE`), decrements inventory, and records entry in `relief_dispatches` linked to the SOS. If requested quantity exceeds stock, automatic rollback occurs. |
+| **5. Donor Contribution & Inventory Auto-Restock** | Click **"Pledge Donation"**, submit 50 water cans, then in Logistics click **"Approve & Increment Stock"**. | Automatically approves the donation and executes trigger/transaction to increment warehouse inventory. |
+| **6. Mission Completion & Volunteer Release** | In the **Fleet** tab, find a volunteer on an active mission and click **"Mark Rescue Completed (RESOLVED)"**. | Marks SOS as `RESOLVED`, sets `resolved_at = NOW()`, sets volunteer back to `AVAILABLE`, and clears assigned mission. |
+| **7. Direct Stored Procedure Test** | In phpMyAdmin SQL tab, execute: `CALL sp_find_nearest_volunteers(1, 5000);` | Directly invokes the database stored procedure and outputs the spatial calculation results table. |

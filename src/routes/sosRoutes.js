@@ -5,7 +5,8 @@ const {
   getNearestVolunteers,
   assignVolunteerToSos,
   getAllSosRequests,
-  updateSosStatus
+  updateSosStatus,
+  getNearestSheltersForSos
 } = require('../controllers/sosController');
 
 // 1. Create a new SOS request
@@ -20,10 +21,13 @@ router.get('/nearby-volunteers', getNearestVolunteers);
 // 4. Find nearest available volunteers for a specific SOS request ID (?radius=5000)
 router.get('/:id/nearest-volunteers', getNearestVolunteers);
 
-// 5. Assign volunteer to an SOS request
+// 5. Find nearest evacuation shelters for a specific SOS request ID (?radius=15000)
+router.get('/:id/nearest-shelters', getNearestSheltersForSos);
+
+// 6. Assign volunteer to an SOS request
 router.post('/:id/assign', assignVolunteerToSos);
 
-// 6. Update SOS status (e.g. IN_PROGRESS, RESOLVED)
+// 7. Update SOS status (e.g. IN_PROGRESS, RESOLVED)
 router.patch('/:id/status', updateSosStatus);
 
 module.exports = router;

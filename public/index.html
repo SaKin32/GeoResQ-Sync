@@ -3,367 +3,1219 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Disaster Alert & Rescue Coordinator Dashboard</title>
-  <!-- Tailwind CSS -->
+  <title>GeoResQ-Sync | Autonomous Geospatial Disaster Response & ACID Aid Dispatch</title>
+
+  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Leaflet CSS & JS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <!-- FontAwesome Icons -->
+  <!-- FontAwesome 6 Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
-  <!-- Google Fonts Inter -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <style>
-    body { font-family: 'Inter', sans-serif; }
-    .glass { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); }
-    .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.06); }
-    .custom-sos-icon {
-      background: #ef4444;
-      border: 3px solid #ffffff;
-      border-radius: 50%;
-      box-shadow: 0 0 15px rgba(239, 68, 68, 0.9);
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            brand: {
+              dark: '#070b14',
+              surface: '#0d1527',
+              card: '#162238',
+              accent: '#38bdf8',
+              sos: '#ef4444',
+              success: '#10b981',
+              warning: '#f59e0b'
+            }
+          }
+        }
+      }
     }
+  </script>
+
+  <style>
+    body {
+      background-color: #070b14;
+      font-family: 'Inter', sans-serif;
+      color: #e2e8f0;
+      overflow-x: hidden;
+    }
+
+    .glass-nav {
+      background: rgba(13, 21, 39, 0.95);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .glass-card {
+      background: rgba(22, 34, 56, 0.75);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .glass-card:hover {
+      border-color: rgba(56, 189, 248, 0.4);
+    }
+
+    /* Leaflet Marker Styling */
+    .custom-sos-icon {
+      background: radial-gradient(circle, #ff2a2a 40%, #b91c1c 100%);
+      border: 2px solid #ffffff;
+      border-radius: 50%;
+      box-shadow: 0 0 18px rgba(239, 68, 68, 0.95);
+      animation: pulse-sos 1.8s infinite;
+    }
+
     .custom-vol-icon {
-      background: #10b981;
-      border: 3px solid #ffffff;
+      background: radial-gradient(circle, #10b981 40%, #047857 100%);
+      border: 2px solid #ffffff;
       border-radius: 50%;
       box-shadow: 0 0 15px rgba(16, 185, 129, 0.9);
     }
-    /* Leaflet layer control dark styling */
+
+    .custom-shelter-icon {
+      background: radial-gradient(circle, #06b6d4 40%, #0e7490 100%);
+      border: 2px solid #ffffff;
+      border-radius: 6px;
+      box-shadow: 0 0 15px rgba(6, 182, 212, 0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 10px;
+    }
+
+    @keyframes pulse-sos {
+      0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.85); }
+      70% { box-shadow: 0 0 0 14px rgba(239, 68, 68, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: rgba(13, 21, 39, 0.5); }
+    ::-webkit-scrollbar-thumb { background: rgba(100, 116, 139, 0.5); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.8); }
+
     .leaflet-control-layers {
-      background: rgba(15, 23, 42, 0.9) !important;
+      background: rgba(13, 21, 39, 0.95) !important;
       color: #e2e8f0 !important;
       border: 1px solid rgba(255, 255, 255, 0.15) !important;
-      border-radius: 8px !important;
+      border-radius: 10px !important;
+      padding: 8px 12px !important;
       font-size: 11px !important;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5) !important;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6) !important;
     }
-    .leaflet-control-layers-toggle {
-      filter: invert(1);
-    }
+    .leaflet-control-layers-toggle { filter: invert(1); }
   </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col">
+<body class="min-h-screen flex flex-col antialiased selection:bg-cyan-500 selection:text-black">
 
-  <!-- Top Navigation & Alert Banner -->
-  <header class="glass sticky top-0 z-50 border-b border-slate-800 px-6 py-3">
-    <div class="flex items-center justify-between">
-      <div class="flex items-center space-x-3">
-        <div class="w-10 h-10 rounded-xl bg-red-600/20 border border-red-500/40 flex items-center justify-center text-red-500 text-xl font-bold">
-          <i class="fa-solid fa-tower-broadcast"></i>
+  <!-- ========================================================================= -->
+  <!-- TOP NAVIGATION HEADER & VIEW SWITCHER -->
+  <!-- ========================================================================= -->
+  <header class="glass-nav sticky top-0 z-50 px-4 lg:px-6 py-2.5">
+    <div class="flex flex-col md:flex-row items-center justify-between gap-3">
+      
+      <!-- Brand & Project Title -->
+      <div class="flex items-center space-x-3 w-full md:w-auto">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-red-500/20 to-cyan-500/20 border border-slate-700 flex items-center justify-center text-cyan-400 text-base shadow-lg shadow-cyan-500/10 shrink-0">
+          <i class="fa-solid fa-satellite-dish"></i>
         </div>
         <div>
-          <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
-            Disaster Alert & Rescue Coordinator
-            <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-              <span class="w-1.5 h-1.5 inline-block rounded-full bg-emerald-400 animate-ping mr-1"></span>MySQL Spatial Active
+          <div class="flex items-center gap-2">
+            <h1 class="text-base font-black tracking-tight text-white flex items-center gap-1.5">
+              GeoResQ-Sync
+            </h1>
+            <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-400 border border-cyan-500/30">
+              MySQL 8.0 Spatial
             </span>
-          </h1>
-          <p class="text-xs text-slate-400">Crowdsourced Disaster Management & Real-time Aid Dispatch</p>
+          </div>
+          <p class="text-[10px] text-slate-400">Autonomous Disaster Management & ACID Aid Dispatch</p>
         </div>
       </div>
 
-      <!-- Action Buttons -->
-      <div class="flex items-center space-x-3">
-        <button onclick="openSosModal()" class="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg text-sm font-semibold transition flex items-center gap-2 shadow-lg shadow-red-600/30">
-          <i class="fa-solid fa-triangle-exclamation"></i> Send SOS Request
-        </button>
-        <button onclick="openDispatchModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-semibold transition flex items-center gap-2 shadow-lg shadow-indigo-600/30">
-          <i class="fa-solid fa-boxes-packing"></i> Dispatch Aid (ACID)
-        </button>
-        <button onclick="refreshAllData()" class="p-2 hover:bg-slate-800 text-slate-300 hover:text-white rounded-lg transition" title="Refresh Data">
-          <i class="fa-solid fa-rotate"></i>
-        </button>
-      </div>
-    </div>
+      <!-- CENTER: MODULAR VIEW TABS (CAN BE OPENED IN SEPARATE BROWSER TABS) -->
+      <nav class="flex items-center bg-slate-900/90 p-1 rounded-xl border border-slate-800 text-xs w-full md:w-auto justify-center overflow-x-auto gap-1">
+        <a href="/" id="navTabRadar" onclick="switchView('radar', event)" class="px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition bg-cyan-500 text-slate-950 shadow-md">
+          <i class="fa-solid fa-map-location-dot"></i>
+          <span>1. Radar</span>
+        </a>
 
-    <!-- Live Alerts Bar -->
-    <div id="alertsBanner" class="mt-2.5 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-1.5 text-xs text-amber-300 flex items-center justify-between">
-      <div class="flex items-center gap-2">
-        <span class="bg-amber-500 text-slate-950 font-black px-1.5 py-0.5 rounded text-[10px] uppercase tracking-wider">Warning</span>
-        <span id="alertHeadline"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Syncing live weather & USGS earthquake alerts...</span>
+        <a href="/shelters" id="navTabShelters" onclick="switchView('shelters', event)" class="px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 text-slate-400 hover:text-white transition">
+          <i class="fa-solid fa-house-chimney-medical text-cyan-400"></i>
+          <span>2. Shelters</span>
+        </a>
+
+        <a href="/logistics" id="navTabLogistics" onclick="switchView('logistics', event)" class="px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 text-slate-400 hover:text-white transition">
+          <i class="fa-solid fa-boxes-packing text-indigo-400"></i>
+          <span>3. Logistics & Donations</span>
+        </a>
+
+        <a href="/fleet" id="navTabVolunteers" onclick="switchView('volunteers', event)" class="px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 text-slate-400 hover:text-white transition">
+          <i class="fa-solid fa-shield-heart text-emerald-400"></i>
+          <span>4. Fleet</span>
+        </a>
+
+        <a href="/database" id="navTabDatabase" onclick="switchView('database', event)" class="px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 text-slate-400 hover:text-white transition relative">
+          <i class="fa-solid fa-database text-cyan-400"></i>
+          <span>5. MySQL Lab</span>
+          <span id="navDbQueryBadge" class="bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-[9px] font-black px-1.5 py-0.2 rounded-full">0</span>
+        </a>
+
+        <a href="/alerts" id="navTabAlerts" onclick="switchView('alerts', event)" class="px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 text-slate-400 hover:text-white transition">
+          <i class="fa-solid fa-cloud-bolt text-amber-400"></i>
+          <span>6. Alerts</span>
+        </a>
+      </nav>
+
+      <!-- RIGHT: PRIMARY ACTIONS & QUICK ROLE SWITCHER -->
+      <div class="flex items-center gap-2 w-full md:w-auto justify-end">
+        
+        <!-- Active Role Switcher -->
+        <div class="relative inline-block text-left">
+          <button onclick="toggleRoleDropdown()" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-semibold transition flex items-center gap-1.5">
+            <i class="fa-solid fa-user-gear text-cyan-400"></i>
+            <span id="currentRoleLabel">Role: ADMIN</span>
+            <i class="fa-solid fa-chevron-down text-[10px]"></i>
+          </button>
+          
+          <div id="roleDropdownMenu" class="hidden absolute right-0 mt-2 w-64 bg-slate-900 rounded-xl shadow-2xl border border-slate-700 py-1.5 z-50">
+            <div class="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-800">
+              Switch Active User & Role
+            </div>
+            <button onclick="switchActiveUser('admin')" class="w-full text-left px-3 py-2 text-xs text-slate-200 hover:bg-slate-800 flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
+              <div>
+                <div class="font-bold text-white">Central Admin</div>
+                <div class="text-[10px] text-slate-400">Role: ADMIN (Full Control)</div>
+              </div>
+            </button>
+            <button onclick="switchActiveUser('volunteer')" class="w-full text-left px-3 py-2 text-xs text-slate-200 hover:bg-slate-800 flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+              <div>
+                <div class="font-bold text-white">Tanvir Ahmed</div>
+                <div class="text-[10px] text-slate-400">Role: VOLUNTEER (Rescue Boat)</div>
+              </div>
+            </button>
+            <button onclick="switchActiveUser('victim')" class="w-full text-left px-3 py-2 text-xs text-slate-200 hover:bg-slate-800 flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-red-400"></span>
+              <div>
+                <div class="font-bold text-white">Rafiqul Islam</div>
+                <div class="text-[10px] text-slate-400">Role: VICTIM (Flood Emergency)</div>
+              </div>
+            </button>
+            <button onclick="switchActiveUser('donor')" class="w-full text-left px-3 py-2 text-xs text-slate-200 hover:bg-slate-800 flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+              <div>
+                <div class="font-bold text-white">Shahidul Alam</div>
+                <div class="text-[10px] text-slate-400">Role: DONOR (Relief Aid)</div>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Action: Report SOS -->
+        <button onclick="openSosModal()" class="px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white rounded-lg text-xs font-semibold transition flex items-center gap-1.5 shadow-md shadow-red-600/30">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <span>Send SOS</span>
+        </button>
+
+        <!-- Action: Dispatch Aid -->
+        <button onclick="openDispatchModal()" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold transition flex items-center gap-1.5 shadow-md shadow-indigo-600/30">
+          <i class="fa-solid fa-boxes-packing"></i>
+          <span>Dispatch Aid</span>
+        </button>
+
+        <!-- Action: Donate Aid -->
+        <button onclick="openDonationModal()" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-xs font-semibold transition flex items-center gap-1.5 shadow-md shadow-amber-600/30">
+          <i class="fa-solid fa-hand-holding-heart"></i>
+          <span>Pledge Donation</span>
+        </button>
+
+        <!-- Refresh -->
+        <button onclick="refreshAllData()" class="p-1.5 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg border border-slate-700/60 transition" title="Refresh Live Data">
+          <i class="fa-solid fa-rotate text-xs"></i>
+        </button>
       </div>
-      <span class="text-[11px] text-amber-400/70" id="alertSource">Feed: USGS API</span>
+
     </div>
   </header>
 
-  <!-- Main Grid Layout -->
-  <main class="flex-1 grid grid-cols-12 gap-4 p-4">
-    
-    <!-- Left Column: SOS Queue & Radar (3 cols) -->
-    <div class="col-span-12 lg:col-span-3 flex flex-col space-y-4">
-      
-      <!-- Stats Overview -->
-      <div class="grid grid-cols-2 gap-3">
-        <div class="glass-card p-3 rounded-xl border border-slate-800">
-          <div class="text-xs text-slate-400">Active SOS</div>
-          <div class="text-2xl font-black text-red-400 mt-0.5" id="totalSosCount">0</div>
-          <div class="text-[10px] text-slate-500 mt-1">Pending Rescue</div>
-        </div>
-        <div class="glass-card p-3 rounded-xl border border-slate-800">
-          <div class="text-xs text-slate-400">Available Fleet</div>
-          <div class="text-2xl font-black text-emerald-400 mt-0.5" id="totalVolCount">0</div>
-          <div class="text-[10px] text-slate-500 mt-1">Ready to Deploy</div>
-        </div>
-      </div>
+  <!-- ========================================================================= -->
+  <!-- VIEW CONTAINER -->
+  <!-- ========================================================================= -->
+  <main class="flex-1 flex flex-col p-3 lg:p-4 max-w-[1920px] mx-auto w-full">
 
-      <!-- Emergency SOS Requests List -->
-      <div class="glass rounded-xl flex-1 flex flex-col overflow-hidden border border-slate-800">
-        <div class="p-3 border-b border-slate-800/80 flex items-center justify-between">
-          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
-            <i class="fa-solid fa-tower-broadcast text-red-400"></i> Emergency SOS List
-          </h2>
-          <span class="text-[11px] text-slate-500">Click to locate</span>
-        </div>
-        <div id="sosListContainer" class="p-3 space-y-2.5 overflow-y-auto max-h-[360px]">
-          <div class="text-center py-8 text-xs text-slate-500">
-            <i class="fa-solid fa-circle-notch fa-spin text-slate-400 text-lg mb-2"></i><br>Loading SOS queue...
+    <!-- ======================================================================= -->
+    <!-- VIEW 1: MISSION RADAR (FOCUSED GIS MAP, SHELTERS & RESCUE DISPATCH) -->
+    <!-- ======================================================================= -->
+    <section id="viewRadar" class="flex-1 grid grid-cols-12 gap-3.5 h-[calc(100vh-85px)] min-h-[600px]">
+      
+      <!-- Left Column: SOS Queue, Nearest Volunteers & Nearest Shelter -->
+      <div class="col-span-12 lg:col-span-4 xl:col-span-3 flex flex-col space-y-3 h-full overflow-hidden">
+        
+        <!-- Metrics Header -->
+        <div class="grid grid-cols-3 gap-2 shrink-0">
+          <div class="glass-card p-2 rounded-xl border border-slate-800">
+            <span class="text-[9px] uppercase font-bold text-slate-400 tracking-wider">Active SOS</span>
+            <div class="text-xl font-black text-red-400 mt-0.5" id="totalSosCount">0</div>
+            <span class="text-[9px] text-slate-500">Pending</span>
+          </div>
+          <div class="glass-card p-2 rounded-xl border border-slate-800">
+            <span class="text-[9px] uppercase font-bold text-slate-400 tracking-wider">Fleet Ready</span>
+            <div class="text-xl font-black text-emerald-400 mt-0.5" id="totalVolCount">0</div>
+            <span class="text-[9px] text-slate-500">Standby</span>
+          </div>
+          <div class="glass-card p-2 rounded-xl border border-slate-800">
+            <span class="text-[9px] uppercase font-bold text-slate-400 tracking-wider">Safe Shelters</span>
+            <div class="text-xl font-black text-cyan-400 mt-0.5" id="totalShelterCount">0</div>
+            <span class="text-[9px] text-slate-500">Open Zones</span>
           </div>
         </div>
+
+        <!-- Emergency SOS List -->
+        <div class="glass-card rounded-xl flex-1 flex flex-col overflow-hidden border border-slate-800">
+          <div class="p-2.5 border-b border-slate-800/80 flex items-center justify-between bg-slate-900/60 shrink-0">
+            <h2 class="text-xs font-black uppercase tracking-wider text-slate-200 flex items-center gap-1.5">
+              <i class="fa-solid fa-triangle-exclamation text-red-400"></i>
+              <span>Emergency SOS Queue</span>
+            </h2>
+            <span class="text-[10px] text-slate-400 font-mono">Select to Target</span>
+          </div>
+          <div id="sosListContainer" class="p-2 space-y-2 overflow-y-auto flex-1">
+            <div class="text-center py-10 text-xs text-slate-500">
+              <i class="fa-solid fa-circle-notch fa-spin text-slate-400 text-lg mb-2"></i><br>Loading incidents...
+            </div>
+          </div>
+        </div>
+
+        <!-- Nearest Rescuers & Nearest Shelter Panel -->
+        <div class="glass-card rounded-xl p-2.5 border border-slate-800 shrink-0 max-h-[300px] flex flex-col">
+          <div class="flex items-center justify-between mb-1.5 shrink-0">
+            <h2 class="text-xs font-black uppercase tracking-wider text-slate-200 flex items-center gap-1.5">
+              <i class="fa-solid fa-compass text-cyan-400"></i>
+              <span>Spatial Proximity Radar</span>
+            </h2>
+            <span id="selectedSosBadge" class="text-[10px] font-mono bg-cyan-950 text-cyan-400 border border-cyan-800/60 px-2 py-0.5 rounded">
+              None
+            </span>
+          </div>
+
+          <!-- Tabs inside Radar for Rescuers / Shelter -->
+          <div class="flex bg-slate-900/80 rounded p-0.5 border border-slate-800 text-[10px] font-mono shrink-0 mb-1.5">
+            <button id="radarSubTabVols" onclick="switchRadarSubTab('vols')" class="flex-1 py-1 rounded bg-cyan-500 text-slate-950 font-bold transition">
+              Nearest Fleet (ST_Distance_Sphere)
+            </button>
+            <button id="radarSubTabShelter" onclick="switchRadarSubTab('shelter')" class="flex-1 py-1 rounded text-slate-400 hover:text-white font-semibold transition">
+              Safe Evacuation Shelter
+            </button>
+          </div>
+
+          <div id="nearestVolunteersList" class="space-y-1.5 overflow-y-auto flex-1">
+            <div class="text-center py-4 text-xs text-slate-500">Select an incident to compute proximity.</div>
+          </div>
+
+          <div id="nearestShelterBox" class="hidden space-y-1.5 overflow-y-auto flex-1 text-xs">
+            <div class="text-center py-4 text-xs text-slate-500">Calculating closest shelter...</div>
+          </div>
+        </div>
+
       </div>
 
-      <!-- Nearest Volunteers for Selected SOS -->
-      <div class="glass rounded-xl p-3 border border-slate-800">
-        <div class="flex items-center justify-between mb-2">
-          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
-            <i class="fa-solid fa-satellite-dish text-cyan-400"></i> Nearest Volunteers (5km)
-          </h2>
-          <span id="selectedSosBadge" class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded">SOS #1</span>
-        </div>
-        <div id="nearestVolunteersList" class="space-y-2 max-h-[220px] overflow-y-auto">
-          <div class="text-center py-4 text-xs text-slate-500">Select an SOS to compute ST_Distance_Sphere nearest volunteers.</div>
-        </div>
-      </div>
-
-    </div>
-
-    <!-- Center Column: Interactive Leaflet Map (6 cols) -->
-    <div class="col-span-12 lg:col-span-6 flex flex-col space-y-3">
-      <div class="glass rounded-xl p-2 flex-1 flex flex-col border border-slate-800 overflow-hidden relative min-h-[500px]">
+      <!-- Right Column: Leaflet Map -->
+      <div class="col-span-12 lg:col-span-8 xl:col-span-9 h-full flex flex-col relative rounded-xl overflow-hidden border border-slate-800">
         
-        <!-- Map Controls Header -->
-        <div class="absolute top-4 left-4 z-[1000] glass px-3 py-1.5 rounded-lg text-xs flex items-center gap-3 border border-slate-700 shadow-xl">
-          <span class="flex items-center gap-1.5 text-red-400 font-medium">
-            <span class="w-2.5 h-2.5 rounded-full bg-red-500 inline-block shadow"></span> SOS Incident
+        <!-- Floating Telemetry Pills on Map -->
+        <div class="absolute top-4 left-4 z-[1000] bg-slate-900/90 backdrop-blur-md px-3 py-1.5 rounded-xl text-xs flex items-center gap-3 border border-slate-700 shadow-xl">
+          <span class="flex items-center gap-1.5 text-red-400 font-semibold">
+            <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span> SOS Incident
           </span>
-          <span class="flex items-center gap-1.5 text-emerald-400 font-medium">
-            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block shadow"></span> Active Volunteer
+          <span class="flex items-center gap-1.5 text-emerald-400 font-semibold">
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Volunteer
           </span>
-          <span class="flex items-center gap-1.5 text-cyan-400 font-medium">
-            <span class="w-2.5 h-2.5 rounded-full bg-cyan-500 inline-block shadow"></span> 5km Perimeter
+          <span class="flex items-center gap-1.5 text-cyan-400 font-semibold">
+            <span class="w-2 h-2 rounded-sm bg-cyan-500"></span> Safe Shelter
           </span>
         </div>
 
-        <div class="absolute top-4 right-14 z-[1000] glass px-2.5 py-1.5 rounded-lg text-xs border border-slate-700 shadow-xl">
-          <span class="text-slate-300 text-[11px]"><i class="fa-solid fa-crosshairs mr-1 text-cyan-400"></i> Click map to pick GPS</span>
+        <div class="absolute top-4 right-14 z-[1000] bg-slate-900/90 backdrop-blur-md px-3 py-1.5 rounded-xl text-xs border border-slate-700 shadow-xl hidden sm:flex items-center gap-2 text-slate-300">
+          <i class="fa-solid fa-crosshairs text-cyan-400 animate-pulse"></i>
+          <span class="text-[11px] font-medium">Click map anywhere to pick coordinates for SOS</span>
         </div>
 
-        <!-- The Leaflet Map Element -->
-        <div id="map" class="w-full h-full rounded-lg z-0"></div>
-      </div>
-    </div>
+        <!-- The Map Container -->
+        <div id="map" class="w-full h-full z-0"></div>
 
-    <!-- Right Column: Relief Inventory & Dispatch Audit (3 cols) -->
-    <div class="col-span-12 lg:col-span-3 flex flex-col space-y-4">
-      
-      <!-- Relief Inventory Card -->
-      <div class="glass rounded-xl flex-1 flex flex-col overflow-hidden border border-slate-800">
-        <div class="p-3 border-b border-slate-800/80 flex items-center justify-between">
-          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
-            <i class="fa-solid fa-boxes-stacked text-amber-400"></i> Relief Inventory Stock
-          </h2>
-          <button onclick="fetchInventory()" class="text-xs text-slate-400 hover:text-white" title="Refresh Inventory">
-            <i class="fa-solid fa-arrow-rotate-right"></i>
+        <!-- Floating Bottom Status Bar -->
+        <div class="absolute bottom-4 left-1/2 -translate-x-1/2 z-[1000] bg-slate-900/90 backdrop-blur-md px-4 py-2 rounded-xl border border-slate-700 shadow-2xl flex items-center gap-3 text-xs">
+          <span class="text-slate-400 text-[11px]">Active Zone:</span>
+          <span id="activeMapFocusName" class="font-bold text-white text-[11px]">Sylhet Sadar, Surma Basin</span>
+          <span class="text-slate-600">|</span>
+          <button onclick="centerMapOnSylhet()" class="text-cyan-400 hover:text-cyan-300 font-medium text-[11px] flex items-center gap-1">
+            <i class="fa-solid fa-bullseye"></i> Reset Map Center
           </button>
         </div>
-        <div id="inventoryContainer" class="p-3 space-y-2.5 overflow-y-auto max-h-[320px]">
-          <div class="text-center py-6 text-xs text-slate-500">Loading inventory stock...</div>
+
+      </div>
+
+    </section>
+
+    <!-- ======================================================================= -->
+    <!-- VIEW 2: SAFE SHELTERS & EVACUATION MANAGEMENT -->
+    <!-- ======================================================================= -->
+    <section id="viewShelters" class="hidden flex-1 flex flex-col space-y-4">
+      
+      <!-- Shelters Metrics -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+        <div class="glass-card p-4 rounded-xl border border-slate-800">
+          <div class="text-xs text-slate-400 font-bold uppercase tracking-wider">Evacuation Shelters</div>
+          <div class="text-2xl font-black text-white mt-1" id="statTotalShelters">0 Centers</div>
+          <div class="text-[11px] text-slate-500 mt-0.5">High schools, colleges & university halls</div>
+        </div>
+
+        <div class="glass-card p-4 rounded-xl border border-slate-800">
+          <div class="text-xs text-slate-400 font-bold uppercase tracking-wider">Total Bed Capacity</div>
+          <div class="text-2xl font-black text-cyan-400 mt-1" id="statTotalCapacity">0 Beds</div>
+          <div class="text-[11px] text-slate-500 mt-0.5">Approved flood shelter accommodations</div>
+        </div>
+
+        <div class="glass-card p-4 rounded-xl border border-slate-800">
+          <div class="text-xs text-slate-400 font-bold uppercase tracking-wider">Current Occupancy</div>
+          <div class="text-2xl font-black text-amber-400 mt-1" id="statTotalOccupancy">0 Evacuees</div>
+          <div class="text-[11px] text-slate-500 mt-0.5">Active disaster refugees admitted</div>
+        </div>
+
+        <div class="glass-card p-4 rounded-xl border border-slate-800">
+          <div class="text-xs text-slate-400 font-bold uppercase tracking-wider">Available Capacity</div>
+          <div class="text-2xl font-black text-emerald-400 mt-1" id="statAvailableSlots">0 Slots</div>
+          <div class="text-[11px] text-slate-500 mt-0.5">Enforced with MySQL CHECK constraint</div>
         </div>
       </div>
 
-      <!-- Recent Dispatches (ACID Audit Log) -->
-      <div class="glass rounded-xl flex-1 flex flex-col overflow-hidden border border-slate-800">
-        <div class="p-3 border-b border-slate-800/80 flex items-center justify-between">
-          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
-            <i class="fa-solid fa-clock-rotate-left text-indigo-400"></i> ACID Dispatch Audit Log
-          </h2>
-          <span class="text-[10px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">Zero Deficit</span>
+      <!-- Shelters List Container -->
+      <div class="glass-card p-4 rounded-xl border border-slate-800 flex-1 flex flex-col">
+        <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
+          <div>
+            <h2 class="text-sm font-black text-white flex items-center gap-2">
+              <i class="fa-solid fa-house-chimney-medical text-cyan-400"></i>
+              <span>Evacuation Shelters Directory (MySQL Spatial Index)</span>
+            </h2>
+            <p class="text-xs text-slate-400">Live occupancy tracking, medical facility readiness & admissions</p>
+          </div>
+          <button onclick="openAddShelterModal()" class="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold rounded-lg text-xs transition flex items-center gap-1.5">
+            <i class="fa-solid fa-plus"></i> Add New Shelter
+          </button>
         </div>
-        <div id="dispatchesContainer" class="p-3 space-y-2 overflow-y-auto max-h-[280px]">
-          <div class="text-center py-6 text-xs text-slate-500">Loading dispatch history...</div>
+
+        <div id="sheltersCardsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 overflow-y-auto max-h-[600px] p-1">
+          <div class="text-center py-12 text-xs text-slate-500 col-span-3">Loading safe shelters...</div>
         </div>
       </div>
 
-    </div>
+    </section>
+
+    <!-- ======================================================================= -->
+    <!-- VIEW 3: RELIEF LOGISTICS, ACID DISPATCH & DONOR CONTRIBUTIONS -->
+    <!-- ======================================================================= -->
+    <section id="viewLogistics" class="hidden flex-1 flex flex-col space-y-4">
+      
+      <!-- Logistics Header Metrics -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+        <div class="glass-card p-4 rounded-xl border border-slate-800">
+          <div class="text-xs text-slate-400 font-bold uppercase tracking-wider">Total Warehouses</div>
+          <div class="text-2xl font-black text-white mt-1">3 Depots</div>
+          <div class="text-[11px] text-slate-500 mt-0.5">Sylhet Central, Zilla Parishad, Red Crescent</div>
+        </div>
+
+        <div class="glass-card p-4 rounded-xl border border-slate-800">
+          <div class="text-xs text-slate-400 font-bold uppercase tracking-wider">ACID Concurrency</div>
+          <div class="text-2xl font-black text-emerald-400 mt-1">Pessimistic Lock</div>
+          <div class="text-[11px] text-slate-500 mt-0.5"><code class="text-cyan-400">SELECT ... FOR UPDATE</code> active</div>
+        </div>
+
+        <div class="glass-card p-4 rounded-xl border border-slate-800">
+          <div class="text-xs text-slate-400 font-bold uppercase tracking-wider">Zero Deficit Rule</div>
+          <div class="text-2xl font-black text-cyan-400 mt-1">100% Guaranteed</div>
+          <div class="text-[11px] text-slate-500 mt-0.5">Database Rollback on stock deficit</div>
+        </div>
+
+        <div class="glass-card p-4 rounded-xl border border-slate-800">
+          <div class="text-xs text-slate-400 font-bold uppercase tracking-wider">Donor Donations</div>
+          <div class="text-2xl font-black text-amber-400 mt-1" id="statDonationCount">0 Pledges</div>
+          <div class="text-[11px] text-slate-500 mt-0.5">Crowdsourced public aid contributions</div>
+        </div>
+      </div>
+
+      <!-- Logistics Main Grid -->
+      <div class="grid grid-cols-12 gap-3.5 flex-1">
+        
+        <!-- Column 1: Warehouse Inventory (7 cols) -->
+        <div class="col-span-12 lg:col-span-7 glass-card rounded-xl p-4 border border-slate-800 flex flex-col">
+          <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
+            <div>
+              <h2 class="text-sm font-black text-white flex items-center gap-2">
+                <i class="fa-solid fa-boxes-stacked text-amber-400"></i>
+                <span>Relief Goods Inventory</span>
+              </h2>
+              <span class="text-[11px] text-slate-400 font-mono">Table: relief_inventory (CHECK quantity >= 0)</span>
+            </div>
+            <button onclick="openDispatchModal()" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold transition flex items-center gap-1.5">
+              <i class="fa-solid fa-truck-ramp-box"></i> Dispatch Aid (ACID)
+            </button>
+          </div>
+
+          <div id="inventoryContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-3 overflow-y-auto max-h-[500px]">
+            <div class="text-center py-12 text-xs text-slate-500 col-span-2">Loading inventory stocks...</div>
+          </div>
+        </div>
+
+        <!-- Column 2: Audit Trail & Donations (5 cols) -->
+        <div class="col-span-12 lg:col-span-5 glass-card rounded-xl p-4 border border-slate-800 flex flex-col">
+          
+          <!-- Sub-tabs for Audit Dispatches vs Donations -->
+          <div class="flex items-center justify-between pb-2 mb-2 border-b border-slate-800">
+            <div class="flex bg-slate-900 rounded-lg p-0.5 border border-slate-800 text-xs font-mono">
+              <button id="btnLogisticsDispatches" onclick="switchLogisticsTab('dispatches')" class="px-3 py-1 rounded bg-indigo-600 text-white font-bold transition">
+                Dispatch Audit Log
+              </button>
+              <button id="btnLogisticsDonations" onclick="switchLogisticsTab('donations')" class="px-3 py-1 rounded text-slate-400 hover:text-white font-semibold transition">
+                Donor Contributions
+              </button>
+            </div>
+            <button onclick="openDonationModal()" class="text-[11px] text-amber-400 hover:underline font-bold">
+              + Pledge Donation
+            </button>
+          </div>
+
+          <!-- Dispatches Audit List -->
+          <div id="dispatchesContainer" class="space-y-2 overflow-y-auto max-h-[500px]">
+            <div class="text-center py-12 text-xs text-slate-500">Loading dispatch history...</div>
+          </div>
+
+          <!-- Donations List -->
+          <div id="donationsContainer" class="hidden space-y-2 overflow-y-auto max-h-[500px]">
+            <div class="text-center py-12 text-xs text-slate-500">Loading donor contributions...</div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- ======================================================================= -->
+    <!-- VIEW 4: VOLUNTEER FLEET & RESCUE MANAGEMENT -->
+    <!-- ======================================================================= -->
+    <section id="viewVolunteers" class="hidden flex-1 flex flex-col space-y-4">
+      
+      <div class="glass-card p-4 rounded-xl border border-slate-800 flex flex-col">
+        <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
+          <div>
+            <h2 class="text-sm font-black text-white flex items-center gap-2">
+              <i class="fa-solid fa-shield-heart text-emerald-400"></i>
+              <span>Volunteer Fleet Operations & Live Mission Tracking</span>
+            </h2>
+            <p class="text-xs text-slate-400">Skills, vehicle capabilities, live GPS locations and mission resolution</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-slate-400 font-mono">Filter Status:</span>
+            <select id="filterVolStatus" onchange="fetchVolunteers()" class="bg-slate-900 text-xs text-slate-200 border border-slate-700 rounded-lg px-2 py-1">
+              <option value="">All Volunteers</option>
+              <option value="AVAILABLE">Available</option>
+              <option value="BUSY">Busy (On Mission)</option>
+              <option value="OFFLINE">Offline</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="volunteersFleetGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 overflow-y-auto max-h-[600px] p-1">
+          <div class="text-center py-12 text-xs text-slate-500 col-span-3">Loading volunteer fleet...</div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ======================================================================= -->
+    <!-- VIEW 5: MYSQL DATABASE LAB (THE STAR EVALUATION WORKBENCH) -->
+    <!-- ======================================================================= -->
+    <section id="viewDatabase" class="hidden flex-1 flex flex-col space-y-3.5">
+      
+      <!-- Top Lab Header Bar -->
+      <div class="glass-card p-3 rounded-xl border border-cyan-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-gradient-to-r from-slate-900 via-slate-900 to-cyan-950/40">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400 text-lg">
+            <i class="fa-solid fa-database"></i>
+          </div>
+          <div>
+            <h2 class="text-base font-black text-white flex items-center gap-2">
+              MySQL 8.0 & Database Engine Laboratory
+              <span class="text-[10px] font-mono font-bold bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded border border-cyan-500/40">
+                Evaluation Center
+              </span>
+            </h2>
+            <p class="text-xs text-slate-400">Pessimistic Row-Level Locking, Haversine Spherical GIS, Triggers, Views & ACID</p>
+          </div>
+        </div>
+
+        <div class="flex items-center space-x-2">
+          <div class="flex bg-slate-950 rounded-lg p-0.5 border border-slate-800 text-xs">
+            <button id="dbSubTabBtnStream" onclick="switchDbSubTab('stream')" class="px-3 py-1.5 rounded-md font-bold bg-cyan-500 text-slate-950 transition">
+              Live Query Console
+            </button>
+            <button id="dbSubTabBtnAcid" onclick="switchDbSubTab('acid')" class="px-3 py-1.5 rounded-md font-semibold text-slate-400 hover:text-white transition">
+              ACID Architecture
+            </button>
+            <button id="dbSubTabBtnViva" onclick="switchDbSubTab('viva')" class="px-3 py-1.5 rounded-md font-semibold text-slate-400 hover:text-white transition">
+              Sir Q&A (Viva)
+            </button>
+          </div>
+          <button onclick="clearInspectorLogs()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold transition flex items-center gap-1.5">
+            <i class="fa-solid fa-trash-can"></i> Clear
+          </button>
+        </div>
+      </div>
+
+      <!-- Main Lab Content -->
+      <div class="grid grid-cols-12 gap-3.5 flex-1 min-h-[520px]">
+        
+        <!-- Left: MySQL Schema Objects Explorer (3 cols) -->
+        <div class="col-span-12 lg:col-span-4 xl:col-span-3 glass-card rounded-xl p-3 border border-slate-800 flex flex-col space-y-3">
+          <div class="text-xs font-black uppercase tracking-wider text-slate-300 flex items-center justify-between pb-2 border-b border-slate-800">
+            <span><i class="fa-solid fa-folder-tree text-cyan-400 mr-1.5"></i> Schema Objects</span>
+            <span class="text-[10px] font-mono text-slate-500">disaster_rescue_db</span>
+          </div>
+
+          <div class="space-y-2 overflow-y-auto flex-1 text-xs font-mono">
+            
+            <!-- Tables Group -->
+            <div>
+              <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                <i class="fa-solid fa-table text-slate-500"></i> Relational Tables (8)
+              </div>
+              <div class="space-y-1 pl-3 text-slate-300">
+                <div class="p-1 rounded hover:bg-slate-800 cursor-pointer flex justify-between" onclick="showObjectDetails('users')">
+                  <span>users</span><span class="text-[10px] text-slate-500">AUTH/ROLES</span>
+                </div>
+                <div class="p-1 rounded hover:bg-slate-800 cursor-pointer flex justify-between text-cyan-300" onclick="showObjectDetails('evacuation_shelters')">
+                  <span>evacuation_shelters</span><span class="text-[10px] text-cyan-400">GIS/CHECK</span>
+                </div>
+                <div class="p-1 rounded hover:bg-slate-800 cursor-pointer flex justify-between text-cyan-300" onclick="showObjectDetails('sos_requests')">
+                  <span>sos_requests</span><span class="text-[10px] text-cyan-500">SPATIAL</span>
+                </div>
+                <div class="p-1 rounded hover:bg-slate-800 cursor-pointer flex justify-between text-cyan-300" onclick="showObjectDetails('volunteers')">
+                  <span>volunteers</span><span class="text-[10px] text-cyan-500">SPATIAL</span>
+                </div>
+                <div class="p-1 rounded hover:bg-slate-800 cursor-pointer flex justify-between" onclick="showObjectDetails('relief_inventory')">
+                  <span>relief_inventory</span><span class="text-[10px] text-amber-500">CHECK</span>
+                </div>
+                <div class="p-1 rounded hover:bg-slate-800 cursor-pointer flex justify-between" onclick="showObjectDetails('relief_dispatches')">
+                  <span>relief_dispatches</span><span class="text-[10px] text-indigo-400">SOS_FK</span>
+                </div>
+                <div class="p-1 rounded hover:bg-slate-800 cursor-pointer flex justify-between" onclick="showObjectDetails('relief_donations')">
+                  <span>relief_donations</span><span class="text-[10px] text-emerald-400">DONOR</span>
+                </div>
+                <div class="p-1 rounded hover:bg-slate-800 cursor-pointer flex justify-between" onclick="showObjectDetails('disaster_alerts')">
+                  <span>disaster_alerts</span><span class="text-[10px] text-slate-500">CRON</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Views Group -->
+            <div class="pt-2 border-t border-slate-800/80">
+              <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                <i class="fa-solid fa-eye text-emerald-500"></i> Virtual Views (3)
+              </div>
+              <div class="space-y-1 pl-3 text-slate-300">
+                <div class="p-1 rounded hover:bg-slate-800 cursor-pointer text-emerald-300" onclick="showObjectDetails('vw_active')">
+                  vw_active_rescue_missions
+                </div>
+                <div class="p-1 rounded hover:bg-slate-800 cursor-pointer text-emerald-300" onclick="showObjectDetails('vw_inventory')">
+                  vw_relief_inventory_status
+                </div>
+                <div class="p-1 rounded hover:bg-slate-800 cursor-pointer text-emerald-300" onclick="showObjectDetails('vw_shelters')">
+                  vw_shelters_overview
+                </div>
+              </div>
+            </div>
+
+            <!-- Stored Procedures Group -->
+            <div class="pt-2 border-t border-slate-800/80">
+              <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                <i class="fa-solid fa-gears text-indigo-400"></i> Stored Procedures (3)
+              </div>
+              <div class="space-y-1 pl-3 text-slate-300">
+                <div class="p-1 rounded hover:bg-slate-800 cursor-pointer text-indigo-300" onclick="showObjectDetails('sp_nearest')">
+                  sp_find_nearest_volunteers
+                </div>
+                <div class="p-1 rounded hover:bg-slate-800 cursor-pointer text-indigo-300" onclick="showObjectDetails('sp_shelters')">
+                  sp_find_nearest_shelters
+                </div>
+                <div class="p-1 rounded hover:bg-slate-800 cursor-pointer text-indigo-300" onclick="showObjectDetails('sp_dispatch')">
+                  sp_dispatch_relief_acid
+                </div>
+              </div>
+            </div>
+
+            <!-- Triggers Group -->
+            <div class="pt-2 border-t border-slate-800/80">
+              <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                <i class="fa-solid fa-bolt text-amber-400"></i> Database Triggers (2)
+              </div>
+              <div class="space-y-1 pl-3 text-slate-300">
+                <div class="p-1 rounded hover:bg-slate-800 cursor-pointer text-amber-300" onclick="showObjectDetails('trg_assign')">
+                  trg_auto_update_sos_on_volunteer_assign
+                </div>
+                <div class="p-1 rounded hover:bg-slate-800 cursor-pointer text-amber-300" onclick="showObjectDetails('trg_donation')">
+                  trg_increase_inventory_on_donation_approved
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Right: Active Terminal / Viva (9 cols) -->
+        <div class="col-span-12 lg:col-span-8 xl:col-span-9 glass-card rounded-xl p-4 border border-slate-800 flex flex-col overflow-hidden">
+          
+          <!-- Sub-Tab 1: Live Query Stream Terminal -->
+          <div id="dbSubTabStream" class="flex-1 flex flex-col overflow-hidden">
+            <div class="flex items-center justify-between pb-2 mb-2 border-b border-slate-800 text-xs font-mono text-slate-400">
+              <span><i class="fa-solid fa-terminal text-cyan-400 mr-1.5"></i> Live Raw SQL Stream & Latency Log</span>
+              <span id="terminalCountLabel">Logged: 0 events</span>
+            </div>
+            
+            <div id="inspectorTabStream" class="space-y-2 overflow-y-auto flex-1 font-mono text-xs pr-1">
+              <div class="text-slate-500 text-center py-16">
+                <i class="fa-solid fa-terminal text-3xl text-slate-600 mb-3"></i><br>
+                Terminal ready. Perform an action (SOS, Dispatch, Shelter, Assign) to inspect live MySQL queries.
+              </div>
+            </div>
+          </div>
+
+          <!-- Sub-Tab 2: ACID Architecture -->
+          <div id="dbSubTabAcid" class="hidden flex-1 overflow-y-auto space-y-4 text-xs pr-1">
+            <div class="p-3.5 rounded-xl bg-slate-900 border border-slate-800">
+              <h3 class="text-sm font-bold text-emerald-400 mb-1 flex items-center gap-2">
+                <i class="fa-solid fa-shield-halved"></i> ACID Transaction Principles in GeoResQ-Sync
+              </h3>
+              <p class="text-slate-300 leading-relaxed text-xs">
+                In disaster relief, sending duplicate aid or recording aid when warehouse stock is zero can lead to lost lives. We implement strict ACID guarantees:
+              </p>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+                <div class="p-2.5 bg-slate-950 rounded-lg border border-slate-800">
+                  <div class="font-bold text-cyan-400">A - Atomicity</div>
+                  <div class="text-[11px] text-slate-400 mt-1">Both stock deduction and dispatch audit log succeed together, or everything is rolled back completely.</div>
+                </div>
+                <div class="p-2.5 bg-slate-950 rounded-lg border border-slate-800">
+                  <div class="font-bold text-cyan-400">C - Consistency</div>
+                  <div class="text-[11px] text-slate-400 mt-1">Protected by SQL CHECK constraint (<code>quantity >= 0</code>) and foreign key cascades.</div>
+                </div>
+                <div class="p-2.5 bg-slate-950 rounded-lg border border-slate-800">
+                  <div class="font-bold text-cyan-400">I - Isolation</div>
+                  <div class="text-[11px] text-slate-400 mt-1">Pessimistic row-level locking (<code>SELECT ... FOR UPDATE</code>) blocks concurrent race conditions.</div>
+                </div>
+                <div class="p-2.5 bg-slate-950 rounded-lg border border-slate-800">
+                  <div class="font-bold text-cyan-400">D - Durability</div>
+                  <div class="text-[11px] text-slate-400 mt-1">InnoDB write-ahead redo log ensures committed dispatches survive sudden power outages.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sub-Tab 3: Viva Q&A -->
+          <div id="dbSubTabViva" class="hidden flex-1 overflow-y-auto space-y-3 text-xs pr-1">
+            <div class="p-3 bg-slate-900 rounded-xl border border-slate-800">
+              <div class="font-bold text-cyan-400 text-sm">Q1: Why MySQL 8.0 Spatial GIS instead of calculating distance in JavaScript?</div>
+              <div class="text-slate-300 mt-1 leading-relaxed">
+                JavaScript array loops scale at O(N) in Node.js server memory. MySQL 8.0 uses R-Tree SPATIAL INDEX and performs <code>ST_Distance_Sphere</code> directly in C++ at the database engine layer in under 2ms for thousands of points.
+              </div>
+            </div>
+            <div class="p-3 bg-slate-900 rounded-xl border border-slate-800">
+              <div class="font-bold text-cyan-400 text-sm">Q2: How does pessimistic locking prevent stock deficits during disaster panic?</div>
+              <div class="text-slate-300 mt-1 leading-relaxed">
+                By executing <code>SELECT quantity FROM relief_inventory WHERE id = ? FOR UPDATE</code>, MySQL places an exclusive row-level lock. If 10 volunteer teams request aid simultaneously, transactions are serialized. If remaining stock is insufficient, the transaction issues <code>ROLLBACK</code>.
+              </div>
+            </div>
+            <div class="p-3 bg-slate-900 rounded-xl border border-slate-800">
+              <div class="font-bold text-cyan-400 text-sm">Q3: How do database triggers maintain state synchronization?</div>
+              <div class="text-slate-300 mt-1 leading-relaxed">
+                When a volunteer's <code>assigned_rescue_id</code> is updated, <code>trg_auto_update_sos_on_volunteer_assign</code> fires automatically to mark the SOS request as <code>ASSIGNED</code>. When a donor's contribution is approved, <code>trg_increase_inventory_on_donation_approved</code> automatically increments warehouse stock.
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- ======================================================================= -->
+    <!-- VIEW 6: LIVE DISASTER & METEOROLOGICAL WARNING ALERTS -->
+    <!-- ======================================================================= -->
+    <section id="viewAlerts" class="hidden flex-1 flex flex-col space-y-4">
+      <div class="glass-card p-4 rounded-xl border border-slate-800 flex-1 flex flex-col">
+        <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
+          <div>
+            <h2 class="text-sm font-black text-white flex items-center gap-2">
+              <i class="fa-solid fa-cloud-bolt text-amber-400"></i>
+              <span>Live Early-Warning Feeds (USGS Earthquake & Flood Warning)</span>
+            </h2>
+            <p class="text-xs text-slate-400">Automated node-cron background polling & database storage</p>
+          </div>
+          <button onclick="forceSyncAlerts()" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold rounded-lg text-xs transition flex items-center gap-1.5">
+            <i class="fa-solid fa-arrows-rotate"></i> Sync Live Feeds Now
+          </button>
+        </div>
+
+        <div id="alertsFullContainer" class="space-y-3 overflow-y-auto max-h-[600px] p-1">
+          <div class="text-center py-12 text-xs text-slate-500">Loading live disaster alerts...</div>
+        </div>
+      </div>
+    </section>
 
   </main>
 
-  <!-- Modal 1: Report New SOS -->
-  <div id="sosModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[2000] hidden flex items-center justify-center p-4">
-    <div class="glass-card max-w-md w-full rounded-2xl p-6 border border-slate-700 shadow-2xl">
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="text-base font-bold text-white flex items-center gap-2">
-          <i class="fa-solid fa-triangle-exclamation text-red-500"></i> Submit Emergency SOS
+  <!-- ========================================================================= -->
+  <!-- MODAL 1: SEND SOS MODAL -->
+  <!-- ========================================================================= -->
+  <div id="sosModal" class="hidden fixed inset-0 z-[2000] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="glass-card bg-slate-900 border border-slate-700 w-full max-w-md rounded-2xl p-5 shadow-2xl">
+      <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
+        <h3 class="text-sm font-black text-white flex items-center gap-2">
+          <i class="fa-solid fa-triangle-exclamation text-red-500"></i>
+          <span>Submit Emergency SOS Request</span>
         </h3>
-        <button onclick="closeSosModal()" class="text-slate-400 hover:text-white text-lg">&times;</button>
+        <button onclick="closeSosModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
-      <form id="sosForm" onsubmit="handleSosSubmit(event)" class="space-y-3.5 text-xs">
+      <form onsubmit="handleSosSubmit(event)" class="space-y-3 text-xs">
         <div>
-          <label class="block text-slate-300 font-medium mb-1">Victim / User ID</label>
-          <input type="number" id="sosUserId" value="1" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100 focus:outline-none focus:border-red-500">
+          <label class="block text-slate-300 font-semibold mb-1">Victim / User ID</label>
+          <input type="number" id="sosUserId" value="1" required class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white font-mono" />
         </div>
-        <div class="grid grid-cols-2 gap-3">
+
+        <div class="grid grid-cols-2 gap-2">
           <div>
-            <label class="block text-slate-300 font-medium mb-1">Latitude</label>
-            <input type="number" step="any" id="sosLat" value="24.8949" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100 focus:outline-none focus:border-red-500">
+            <label class="block text-slate-300 font-semibold mb-1">Latitude (N)</label>
+            <input type="text" id="sosLat" value="24.894900" required class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white font-mono" />
           </div>
           <div>
-            <label class="block text-slate-300 font-medium mb-1">Longitude</label>
-            <input type="number" step="any" id="sosLng" value="91.8687" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100 focus:outline-none focus:border-red-500">
+            <label class="block text-slate-300 font-semibold mb-1">Longitude (E)</label>
+            <input type="text" id="sosLng" value="91.868700" required class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white font-mono" />
           </div>
         </div>
-        <div class="flex items-center justify-between text-[11px] text-slate-400">
-          <span>Tip: Click anywhere on the map to auto-fill GPS</span>
-          <button type="button" onclick="useCurrentLocation()" class="text-cyan-400 hover:underline">Use Device GPS</button>
-        </div>
+
         <div>
-          <label class="block text-slate-300 font-medium mb-1">Urgency Level</label>
-          <select id="sosUrgency" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100 focus:outline-none focus:border-red-500">
-            <option value="CRITICAL">CRITICAL (Life Threatening)</option>
-            <option value="HIGH">HIGH (Severe Danger)</option>
-            <option value="MEDIUM" selected>MEDIUM (Moderate Need)</option>
-            <option value="LOW">LOW (Mild Aid Request)</option>
+          <button type="button" onclick="useCurrentLocation()" class="text-[11px] text-cyan-400 hover:underline flex items-center gap-1 font-mono">
+            <i class="fa-solid fa-location-crosshairs"></i> Use My Device Live GPS Coordinates
+          </button>
+        </div>
+
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">Urgency Level</label>
+          <select id="sosUrgency" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white">
+            <option value="CRITICAL">CRITICAL (Life Threatening / Roof Submerged)</option>
+            <option value="HIGH">HIGH (Water rising / Medical Needs)</option>
+            <option value="MEDIUM" selected>MEDIUM (Food & Clean Water Depleted)</option>
+            <option value="LOW">LOW (Precautionary Evacuation)</option>
           </select>
         </div>
+
         <div>
-          <label class="block text-slate-300 font-medium mb-1">Emergency Details</label>
-          <textarea id="sosDetails" rows="3" required placeholder="Describe situation, trapped count, medical needs..." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100 focus:outline-none focus:border-red-500">Flood water rising rapidly. 4 elderly family members trapped.</textarea>
+          <label class="block text-slate-300 font-semibold mb-1">Situation Details</label>
+          <textarea id="sosDetails" rows="3" placeholder="Describe trapped people, child/elderly count..." class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white"></textarea>
         </div>
+
         <div class="pt-2 flex justify-end gap-2">
-          <button type="button" onclick="closeSosModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg">Cancel</button>
-          <button type="submit" id="btnSubmitSos" class="px-5 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg font-semibold shadow-lg shadow-red-600/30">Submit SOS</button>
+          <button type="button" onclick="closeSosModal()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg font-semibold">Cancel</button>
+          <button type="submit" id="btnSubmitSos" class="px-4 py-1.5 bg-red-600 hover:bg-red-500 text-white font-bold rounded-lg shadow-lg shadow-red-600/30">Submit SOS</button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- Modal 2: ACID Relief Dispatch -->
-  <div id="dispatchModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[2000] hidden flex items-center justify-center p-4">
-    <div class="glass-card max-w-md w-full rounded-2xl p-6 border border-slate-700 shadow-2xl">
-      <div class="flex items-center justify-between mb-4">
-        <div>
-          <h3 class="text-base font-bold text-white flex items-center gap-2">
-            <i class="fa-solid fa-boxes-packing text-indigo-400"></i> Dispatch Aid (ACID Transaction)
-          </h3>
-          <p class="text-[11px] text-slate-400 mt-0.5">Executes row lock & atomic stock balance deduction</p>
-        </div>
-        <button onclick="closeDispatchModal()" class="text-slate-400 hover:text-white text-lg">&times;</button>
+  <!-- ========================================================================= -->
+  <!-- MODAL 2: DISPATCH AID (ACID TRANSACTION LINKED TO SOS) -->
+  <!-- ========================================================================= -->
+  <div id="dispatchModal" class="hidden fixed inset-0 z-[2000] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="glass-card bg-slate-900 border border-slate-700 w-full max-w-md rounded-2xl p-5 shadow-2xl">
+      <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
+        <h3 class="text-sm font-black text-white flex items-center gap-2">
+          <i class="fa-solid fa-boxes-packing text-indigo-400"></i>
+          <span>ACID Relief Dispatch (Zero Deficit)</span>
+        </h3>
+        <button onclick="closeDispatchModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
-      <form id="dispatchForm" onsubmit="handleDispatchSubmit(event)" class="space-y-3.5 text-xs">
+      <form onsubmit="handleDispatchSubmit(event)" class="space-y-3 text-xs">
         <div>
-          <label class="block text-slate-300 font-medium mb-1">Assign to Volunteer / Rescue Team</label>
-          <select id="dispatchTeamId" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100 focus:outline-none focus:border-indigo-500">
-            <!-- Dynamically populated -->
+          <label class="block text-slate-300 font-semibold mb-1">Select Rescue Team / Volunteer</label>
+          <select id="dispatchTeamId" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white"></select>
+        </div>
+
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">Linked SOS Incident (Optional)</label>
+          <select id="dispatchSosId" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white">
+            <option value="">General Distribution (No Specific SOS)</option>
           </select>
         </div>
+
         <div>
-          <label class="block text-slate-300 font-medium mb-1">Select Relief Item</label>
-          <select id="dispatchItemId" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100 focus:outline-none focus:border-indigo-500">
-            <!-- Dynamically populated -->
-          </select>
+          <label class="block text-slate-300 font-semibold mb-1">Relief Item from Warehouse</label>
+          <select id="dispatchItemId" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white"></select>
         </div>
+
         <div>
-          <label class="block text-slate-300 font-medium mb-1">Quantity to Deduct</label>
-          <input type="number" min="1" id="dispatchQty" value="10" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100 focus:outline-none focus:border-indigo-500">
+          <label class="block text-slate-300 font-semibold mb-1">Quantity to Deduct</label>
+          <input type="number" id="dispatchQty" value="10" min="1" required class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white font-mono" />
+          <p class="text-[10px] text-slate-500 mt-1">Hint: Test ACID Rollback by requesting 9999 units.</p>
         </div>
+
         <div id="dispatchAlertMsg" class="hidden p-2.5 rounded-lg text-[11px]"></div>
+
         <div class="pt-2 flex justify-end gap-2">
-          <button type="button" onclick="closeDispatchModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg">Cancel</button>
-          <button type="submit" id="btnSubmitDispatch" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-semibold shadow-lg shadow-indigo-600/30">Commit Dispatch</button>
+          <button type="button" onclick="closeDispatchModal()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg font-semibold">Cancel</button>
+          <button type="submit" id="btnSubmitDispatch" class="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg shadow-lg shadow-indigo-600/30">Commit Dispatch</button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- JavaScript Application Logic -->
-  <script>
-    const API_BASE = '';
-    let map, searchCircle, currentMarkers = [];
-    let allSos = [], allVolunteers = [], allInventory = [];
-    let selectedSosId = null;
+  <!-- ========================================================================= -->
+  <!-- MODAL 3: PLEDGE DONATION MODAL -->
+  <!-- ========================================================================= -->
+  <div id="donationModal" class="hidden fixed inset-0 z-[2000] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="glass-card bg-slate-900 border border-slate-700 w-full max-w-md rounded-2xl p-5 shadow-2xl">
+      <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
+        <h3 class="text-sm font-black text-white flex items-center gap-2">
+          <i class="fa-solid fa-hand-holding-heart text-amber-400"></i>
+          <span>Pledge Public Relief Aid (Donor Portal)</span>
+        </h3>
+        <button onclick="closeDonationModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
 
-    // Initialize Map with 100% Free, High Quality Tile Layers (No API Key Required)
+      <form onsubmit="handleDonationSubmit(event)" class="space-y-3 text-xs">
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">Donor Profile</label>
+          <div class="p-2 bg-slate-950 rounded-lg border border-slate-800 text-slate-300">
+            <span class="font-bold text-white">Shahidul Alam</span> (Humanitarian Aid Society)
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">Select Relief Item to Restock</label>
+          <select id="donationItemId" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white"></select>
+        </div>
+
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">Donation Quantity</label>
+          <input type="number" id="donationQty" value="50" min="1" required class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white font-mono" />
+        </div>
+
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">Donation Notes / Vehicle Reference</label>
+          <textarea id="donationNotes" rows="2" placeholder="e.g. Arriving via courier / dispatch van to Sylhet Central Warehouse..." class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white"></textarea>
+        </div>
+
+        <div id="donationAlertMsg" class="hidden p-2.5 rounded-lg text-[11px]"></div>
+
+        <div class="pt-2 flex justify-end gap-2">
+          <button type="button" onclick="closeDonationModal()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg font-semibold">Cancel</button>
+          <button type="submit" id="btnSubmitDonation" class="px-4 py-1.5 bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold rounded-lg shadow-lg shadow-amber-600/30">Submit Donation Pledge</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL 4: ADD SHELTER MODAL -->
+  <!-- ========================================================================= -->
+  <div id="addShelterModal" class="hidden fixed inset-0 z-[2000] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="glass-card bg-slate-900 border border-slate-700 w-full max-w-md rounded-2xl p-5 shadow-2xl">
+      <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
+        <h3 class="text-sm font-black text-white flex items-center gap-2">
+          <i class="fa-solid fa-house-chimney-medical text-cyan-400"></i>
+          <span>Register Evacuation Safe Shelter</span>
+        </h3>
+        <button onclick="closeAddShelterModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form onsubmit="handleAddShelterSubmit(event)" class="space-y-3 text-xs">
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">Shelter / Facility Name</label>
+          <input type="text" id="newShelterName" placeholder="e.g. Shahjalal Govt. High School Shelter" required class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Latitude</label>
+            <input type="text" id="newShelterLat" value="24.8970" required class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white font-mono" />
+          </div>
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Longitude</label>
+            <input type="text" id="newShelterLng" value="91.8700" required class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white font-mono" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Total Capacity (Beds)</label>
+            <input type="number" id="newShelterCapacity" value="400" min="10" required class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white font-mono" />
+          </div>
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Medical Unit Ready</label>
+            <select id="newShelterMedical" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white">
+              <option value="true">Yes (First Aid/Doctor)</option>
+              <option value="false">No (Shelter Only)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Contact Person</label>
+            <input type="text" id="newShelterPerson" placeholder="Officer in charge" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white" />
+          </div>
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Phone Number</label>
+            <input type="text" id="newShelterPhone" placeholder="+88017..." class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white font-mono" />
+          </div>
+        </div>
+
+        <div class="pt-2 flex justify-end gap-2">
+          <button type="button" onclick="closeAddShelterModal()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg font-semibold">Cancel</button>
+          <button type="submit" id="btnSubmitShelter" class="px-4 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold rounded-lg shadow-lg shadow-cyan-600/30">Save Shelter</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- JAVASCRIPT APPLICATION LOGIC -->
+  <!-- ========================================================================= -->
+  <script>
+    const API_BASE = window.location.origin;
+
+    // State Variables
+    let currentView = 'radar';
+    let currentRole = 'ADMIN';
+    let map = null;
+    let searchCircle = null;
+    let rescueTrajectoryLine = null;
+    let shelterTrajectoryLine = null;
+
+    let allSos = [];
+    let allVolunteers = [];
+    let allShelters = [];
+    let allInventory = [];
+    let allDispatches = [];
+    let allDonations = [];
+    let allAlerts = [];
+
+    let selectedSosId = null;
+    let currentSosMarkers = [];
+    let currentVolMarkers = [];
+    let currentShelterMarkers = [];
+    let sqlExecutionCount = 0;
+
+    // -------------------------------------------------------------------------
+    // 1. VIEW SWITCHER (SUPPORTS IN-PAGE CLICK & MULTI-TAB BROWSING)
+    // -------------------------------------------------------------------------
+    function switchView(viewName, e) {
+      if (e && (e.ctrlKey || e.metaKey || e.button === 1)) {
+        // Allow middle-click or Ctrl+Click to open in a new browser tab
+        return;
+      }
+      if (e && e.preventDefault) e.preventDefault();
+
+      currentView = viewName;
+
+      // Update URL in browser address bar
+      if (window.history && window.history.pushState) {
+        const newPath = viewName === 'radar' ? '/' : '/' + viewName;
+        if (window.location.pathname !== newPath) {
+          window.history.pushState({ view: viewName }, '', newPath);
+        }
+      }
+
+      const views = ['radar', 'shelters', 'logistics', 'volunteers', 'database', 'alerts'];
+      views.forEach(v => {
+        const section = document.getElementById('view' + capitalize(v));
+        const tabBtn = document.getElementById('navTab' + capitalize(v));
+        if (section) section.classList.add('hidden');
+        if (tabBtn) {
+          tabBtn.className = 'px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 text-slate-400 hover:text-white transition';
+        }
+      });
+
+      const activeSection = document.getElementById('view' + capitalize(viewName));
+      const activeTabBtn = document.getElementById('navTab' + capitalize(viewName));
+
+      if (activeSection) activeSection.classList.remove('hidden');
+      if (activeTabBtn) {
+        activeTabBtn.className = 'px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition bg-cyan-500 text-slate-950 shadow-md';
+      }
+
+      if (viewName === 'radar' && map) {
+        setTimeout(() => map.invalidateSize(), 150);
+      }
+    }
+
+    // Handle Browser Back / Forward buttons
+    window.addEventListener('popstate', () => {
+      const path = window.location.pathname.replace('/', '') || 'radar';
+      const target = path === 'fleet' ? 'volunteers' : (path === 'lab' ? 'database' : path);
+      switchView(target);
+    });
+
+    function capitalize(str) {
+      return str.charAt(0).toUpperCase() + str.slice(1);
+    }
+
+    function switchDbSubTab(tabName) {
+      ['stream', 'acid', 'viva'].forEach(t => {
+        const pane = document.getElementById('dbSubTab' + capitalize(t));
+        const btn = document.getElementById('dbSubTabBtn' + capitalize(t));
+        if (pane) pane.classList.add('hidden');
+        if (btn) btn.className = 'px-3 py-1.5 rounded-md font-semibold text-slate-400 hover:text-white transition';
+      });
+
+      const activePane = document.getElementById('dbSubTab' + capitalize(tabName));
+      const activeBtn = document.getElementById('dbSubTabBtn' + capitalize(tabName));
+      if (activePane) activePane.classList.remove('hidden');
+      if (activeBtn) activeBtn.className = 'px-3 py-1.5 rounded-md font-bold bg-cyan-500 text-slate-950 transition';
+    }
+
+    function switchRadarSubTab(tab) {
+      const volsList = document.getElementById('nearestVolunteersList');
+      const shelterBox = document.getElementById('nearestShelterBox');
+      const tabVols = document.getElementById('radarSubTabVols');
+      const tabShelter = document.getElementById('radarSubTabShelter');
+
+      if (tab === 'vols') {
+        volsList.classList.remove('hidden');
+        shelterBox.classList.add('hidden');
+        tabVols.className = 'flex-1 py-1 rounded bg-cyan-500 text-slate-950 font-bold transition';
+        tabShelter.className = 'flex-1 py-1 rounded text-slate-400 hover:text-white font-semibold transition';
+      } else {
+        volsList.classList.add('hidden');
+        shelterBox.classList.remove('hidden');
+        tabShelter.className = 'flex-1 py-1 rounded bg-cyan-500 text-slate-950 font-bold transition';
+        tabVols.className = 'flex-1 py-1 rounded text-slate-400 hover:text-white font-semibold transition';
+      }
+    }
+
+    function switchLogisticsTab(tab) {
+      const dispBox = document.getElementById('dispatchesContainer');
+      const donaBox = document.getElementById('donationsContainer');
+      const btnDisp = document.getElementById('btnLogisticsDispatches');
+      const btnDona = document.getElementById('btnLogisticsDonations');
+
+      if (tab === 'dispatches') {
+        dispBox.classList.remove('hidden');
+        donaBox.classList.add('hidden');
+        btnDisp.className = 'px-3 py-1 rounded bg-indigo-600 text-white font-bold transition';
+        btnDona.className = 'px-3 py-1 rounded text-slate-400 hover:text-white font-semibold transition';
+      } else {
+        dispBox.classList.add('hidden');
+        donaBox.classList.remove('hidden');
+        btnDona.className = 'px-3 py-1 rounded bg-amber-600 text-slate-950 font-bold transition';
+        btnDisp.className = 'px-3 py-1 rounded text-slate-400 hover:text-white font-semibold transition';
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // 2. LEAFLET MAP INITIALIZATION (100% FREE NO-API-KEY CLEAN DARK GIS BASEMAP)
+    // -------------------------------------------------------------------------
     function initMap() {
-      // Center around Sylhet Sadar flood coordinate (24.8949, 91.8687)
+      // Centered at Sylhet Sadar flood zone
       map = L.map('map', { zoomControl: false }).setView([24.8949, 91.8687], 13);
       L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-      // Layer 1: Clean Dark Canvas (Esri Dark Gray - Free, No API key, No watermark)
-      const esriDark = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
-        attribution: '&copy; Esri, HERE, Garmin',
-        maxZoom: 16
-      });
+      // High-performance clean dark GIS basemap (NO API KEY REQUIRED, NO WATERMARK)
+      const darkLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 16,
+        attribution: '&copy; Esri &copy; OpenStreetMap contributors'
+      }).addTo(map);
 
-      const esriLabels = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
-        maxZoom: 16
-      });
-
-      const darkGroup = L.layerGroup([esriDark, esriLabels]);
-
-      // Layer 2: OpenStreetMap Standard (Full roads, rivers, landmarks - Free)
-      const osmStreet = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors',
-        maxZoom: 19
-      });
-
-      // Layer 3: Esri Satellite Imagery
-      const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-        attribution: '&copy; Esri, Maxar, Earthstar',
-        maxZoom: 18
-      });
-
-      // Add default dark layer
-      darkGroup.addTo(map);
-
-      // Layer Switcher Control in top right
+      // Base maps switcher (All free, NO API KEY)
       const baseMaps = {
-        "🌑 Dark Theme": darkGroup,
-        "🗺️ Street Map": osmStreet,
-        "🛰️ Satellite": satellite
+        "🌑 Dark Tactical (Esri - Free)": darkLayer,
+        "🛰️ Satellite Imagery (Esri)": L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 18, attribution: '&copy; Esri Imagery' }),
+        "🗺️ Standard Street (OSM)": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' })
       };
       L.control.layers(baseMaps, null, { position: 'topright' }).addTo(map);
 
-      // Click on map to fill SOS coords
+      // Map Click: Quick GPS Coordinate Picker for SOS
       map.on('click', (e) => {
-        document.getElementById('sosLat').value = e.latlng.lat.toFixed(6);
-        document.getElementById('sosLng').value = e.latlng.lng.toFixed(6);
+        const lat = e.latlng.lat.toFixed(6);
+        const lng = e.latlng.lng.toFixed(6);
+        document.getElementById('sosLat').value = lat;
+        document.getElementById('sosLng').value = lng;
+        
+        logSqlQuery(
+          'GEOSPATIAL COORDINATE PICKER',
+          `-- User selected coordinates on Leaflet Map canvas\nSET @picked_location = POINT(${lng}, ${lat});\nSELECT ST_X(@picked_location) AS lng, ST_Y(@picked_location) AS lat;`,
+          'MySQL Spatial Geometry Point',
+          `Picked: ${lat}, ${lng}`
+        );
+
         openSosModal();
       });
     }
 
-    // Load All Data
+    function centerMapOnSylhet() {
+      if (map) map.flyTo([24.8949, 91.8687], 13, { duration: 1.2 });
+    }
+
+    // -------------------------------------------------------------------------
+    // 3. DATA REFRESH PIPELINE
+    // -------------------------------------------------------------------------
     async function refreshAllData() {
       await Promise.all([
         fetchSosList(),
         fetchVolunteers(),
+        fetchShelters(),
         fetchInventory(),
         fetchDispatches(),
+        fetchDonations(),
         fetchAlerts()
       ]);
     }
 
-    // 1. Fetch SOS List
+    // Fetch SOS Requests
     async function fetchSosList() {
       try {
+        const startTime = performance.now();
         const res = await fetch(`${API_BASE}/api/sos`);
         const json = await res.json();
+        const latency = (performance.now() - startTime).toFixed(1);
+
         if (json.success) {
           allSos = json.data;
           document.getElementById('totalSosCount').innerText = allSos.filter(s => s.status !== 'RESOLVED').length;
           renderSosList();
           renderMapMarkers();
+          populateDispatchSosSelect();
+
+          logSqlQuery(
+            'FETCH ACTIVE RESCUE MISSIONS',
+            `SELECT s.id, u.name, s.latitude, s.longitude, s.urgency_level, s.status, ST_X(s.location) AS spatial_lng, ST_Y(s.location) AS spatial_lat\nFROM sos_requests s JOIN users u ON s.user_id = u.id ORDER BY s.created_at DESC;`,
+            'Relational JOIN & Spatial Projection',
+            `Retrieved ${allSos.length} SOS records in ${latency}ms`
+          );
+
           if (allSos.length > 0 && !selectedSosId) {
             selectSos(allSos[0].id);
           }
@@ -373,61 +1225,67 @@
       }
     }
 
-    // Render SOS List Cards
     function renderSosList() {
       const container = document.getElementById('sosListContainer');
       if (allSos.length === 0) {
-        container.innerHTML = '<div class="text-center py-6 text-xs text-slate-500">No active SOS requests found.</div>';
+        container.innerHTML = '<div class="text-center py-8 text-xs text-slate-500">No active SOS requests queued.</div>';
         return;
       }
 
       container.innerHTML = allSos.map(sos => {
         const urgencyColor = {
-          CRITICAL: 'bg-red-500/20 text-red-400 border-red-500/30',
-          HIGH: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
-          MEDIUM: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
-          LOW: 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+          CRITICAL: 'bg-red-500/20 text-red-400 border-red-500/40',
+          HIGH: 'bg-orange-500/20 text-orange-400 border-orange-500/40',
+          MEDIUM: 'bg-amber-500/20 text-amber-400 border-amber-500/40',
+          LOW: 'bg-blue-500/20 text-blue-400 border-blue-500/40'
         }[sos.urgency_level] || 'bg-slate-700 text-slate-300';
 
         const statusColor = {
-          PENDING: 'bg-rose-500 text-white',
-          ASSIGNED: 'bg-cyan-500 text-slate-950 font-bold',
-          IN_PROGRESS: 'bg-amber-500 text-slate-950 font-bold',
-          RESOLVED: 'bg-emerald-500 text-white'
+          PENDING: 'bg-rose-500/20 text-rose-300 border-rose-500/30',
+          ASSIGNED: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
+          IN_PROGRESS: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+          RESOLVED: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
         }[sos.status] || 'bg-slate-700 text-white';
 
-        const isSelected = selectedSosId === sos.id ? 'ring-2 ring-cyan-500 bg-slate-800' : 'glass-card hover:bg-slate-800/80';
+        const isSelected = selectedSosId === sos.id 
+          ? 'border-cyan-500 bg-slate-800/90 shadow-md ring-1 ring-cyan-500/50' 
+          : 'glass-card border-slate-700/60 hover:bg-slate-800/60';
+
+        const assignedInfo = sos.assigned_volunteer_name 
+          ? `<div class="mt-1 text-[10px] text-emerald-400 font-sans"><i class="fa-solid fa-shield-halved mr-1"></i>Assigned: <b>${sos.assigned_volunteer_name}</b> (${sos.volunteer_vehicle || 'Boat'})</div>` 
+          : '';
 
         return `
-          <div onclick="selectSos(${sos.id})" class="p-3 rounded-xl border border-slate-700/60 cursor-pointer transition ${isSelected}">
-            <div class="flex items-center justify-between mb-1.5">
+          <div onclick="selectSos(${sos.id})" class="p-2 rounded-xl border cursor-pointer transition ${isSelected}">
+            <div class="flex items-center justify-between mb-1">
               <span class="text-xs font-bold text-white flex items-center gap-1.5">
-                <i class="fa-solid fa-user text-slate-400 text-[10px]"></i> ${sos.victim_name || 'Victim #' + sos.user_id}
+                <i class="fa-solid fa-user-shield text-slate-400 text-[10px]"></i> ${sos.victim_name || 'Victim #' + sos.user_id}
               </span>
-              <span class="text-[10px] px-2 py-0.5 rounded-full border ${urgencyColor} font-semibold">${sos.urgency_level}</span>
+              <span class="text-[9px] px-2 py-0.2 rounded-full border ${urgencyColor} font-bold">${sos.urgency_level}</span>
             </div>
-            <p class="text-[11px] text-slate-300 line-clamp-2 mb-2 leading-relaxed">${sos.details || 'No details provided.'}</p>
-            <div class="flex items-center justify-between text-[10px] text-slate-400">
+            <p class="text-[11px] text-slate-300 line-clamp-2 mb-1.5 leading-relaxed">${sos.details || 'No details provided.'}</p>
+            ${assignedInfo}
+            <div class="flex items-center justify-between text-[10px] text-slate-400 font-mono mt-1">
               <span><i class="fa-solid fa-location-dot text-red-400 mr-1"></i>${parseFloat(sos.latitude).toFixed(4)}, ${parseFloat(sos.longitude).toFixed(4)}</span>
-              <span class="px-1.5 py-0.5 rounded text-[9px] uppercase ${statusColor}">${sos.status}</span>
+              <span class="px-1.5 py-0.2 rounded border uppercase font-sans font-bold text-[9px] ${statusColor}">${sos.status}</span>
             </div>
           </div>
         `;
       }).join('');
     }
 
-    // Select SOS & calculate nearest volunteers
     async function selectSos(id) {
       selectedSosId = id;
       renderSosList();
-      document.getElementById('selectedSosBadge').innerText = `SOS #${id}`;
+      document.getElementById('selectedSosBadge').innerText = `Target: SOS #${id}`;
       
       const target = allSos.find(s => s.id === id);
       if (target && map) {
         map.flyTo([target.latitude, target.longitude], 14, { duration: 1.2 });
+        document.getElementById('activeMapFocusName').innerText = `${target.victim_name || 'Victim #' + target.user_id} (${target.urgency_level})`;
       }
 
-      // Draw 5km radius circle
+      // Draw 5km search circle
       if (searchCircle) map.removeLayer(searchCircle);
       if (target) {
         searchCircle = L.circle([target.latitude, target.longitude], {
@@ -440,37 +1298,87 @@
         }).addTo(map);
       }
 
-      // Fetch ST_Distance_Sphere nearest volunteers
+      // 1. Fetch nearest volunteers via ST_Distance_Sphere
       try {
+        const startTime = performance.now();
         const res = await fetch(`${API_BASE}/api/sos/${id}/nearest-volunteers?radius=5000`);
         const json = await res.json();
-        renderNearestVolunteers(json.volunteers || []);
+        const latency = (performance.now() - startTime).toFixed(1);
+
+        const volunteers = json.volunteers || [];
+        renderNearestVolunteers(volunteers);
+
+        // Draw trajectory line from closest volunteer
+        if (rescueTrajectoryLine) map.removeLayer(rescueTrajectoryLine);
+        if (volunteers.length > 0 && target) {
+          const closest = volunteers[0];
+          rescueTrajectoryLine = L.polyline([
+            [target.latitude, target.longitude],
+            [closest.latitude, closest.longitude]
+          ], {
+            color: '#10b981',
+            weight: 2.5,
+            dashArray: '6, 8',
+            opacity: 0.9
+          }).addTo(map);
+        }
+
+        logSqlQuery(
+          'GEOSPATIAL SPATIAL PROXIMITY SEARCH',
+          `-- Executing sp_find_nearest_volunteers or Spatial SQL\nSELECT v.id, u.name, v.skills, v.vehicle_type, ROUND(ST_Distance_Sphere(v.current_location, POINT(${target.longitude}, ${target.latitude})), 2) AS distance_meters\nFROM volunteers v JOIN users u ON v.user_id = u.id\nWHERE v.status = 'AVAILABLE' AND ST_Distance_Sphere(v.current_location, POINT(${target.longitude}, ${target.latitude})) <= 5000\nORDER BY distance_meters ASC LIMIT 25;`,
+          'MySQL 8.0 ST_Distance_Sphere & SPATIAL INDEX',
+          `Computed ${volunteers.length} nearby fleet in ${latency}ms`
+        );
       } catch (err) {
-        console.error('Failed to compute distance:', err);
+        console.error('Failed to compute volunteer distance:', err);
+      }
+
+      // 2. Fetch nearest evacuation shelter for this SOS
+      try {
+        const resShelter = await fetch(`${API_BASE}/api/sos/${id}/nearest-shelters?radius=15000`);
+        const jsonShelter = await resShelter.json();
+        if (jsonShelter.success && jsonShelter.shelters.length > 0) {
+          const nearestShelter = jsonShelter.shelters[0];
+          renderNearestShelter(nearestShelter);
+
+          if (shelterTrajectoryLine) map.removeLayer(shelterTrajectoryLine);
+          if (target) {
+            shelterTrajectoryLine = L.polyline([
+              [target.latitude, target.longitude],
+              [nearestShelter.latitude, nearestShelter.longitude]
+            ], {
+              color: '#06b6d4',
+              weight: 2,
+              dashArray: '4, 6',
+              opacity: 0.8
+            }).addTo(map);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch nearest shelter for SOS:', err);
       }
     }
 
-    // Render Nearest Volunteers in Radar list
     function renderNearestVolunteers(vols) {
       const container = document.getElementById('nearestVolunteersList');
       if (vols.length === 0) {
-        container.innerHTML = '<div class="text-center py-4 text-xs text-amber-400/80">No available volunteers found within 5km perimeter.</div>';
+        container.innerHTML = '<div class="text-center py-3 text-xs text-amber-400/80 bg-amber-500/10 rounded-lg border border-amber-500/20">No active volunteers within 5km perimeter.</div>';
         return;
       }
 
       container.innerHTML = vols.map(v => `
-        <div class="glass-card p-2.5 rounded-lg border border-slate-700/60 flex items-center justify-between text-xs">
+        <div class="glass-card p-2 rounded-lg border border-slate-700/60 flex items-center justify-between text-xs">
           <div>
             <div class="font-bold text-white flex items-center gap-1.5">
               <span class="w-2 h-2 rounded-full bg-emerald-400"></span> ${v.name}
             </div>
-            <div class="text-[10px] text-slate-400 mt-0.5">
-              <i class="fa-solid fa-phone text-slate-500 mr-1"></i>${v.phone}
+            <div class="text-[10px] text-slate-400 font-mono mt-0.5">
+              <span class="text-slate-300 font-sans">${v.vehicle_type || 'Boat'}</span> | <i class="fa-solid fa-phone text-slate-500 mr-1"></i>${v.phone}
             </div>
           </div>
           <div class="text-right">
-            <span class="text-xs font-black text-cyan-400">${v.distance_meters < 1000 ? v.distance_meters + 'm' : v.distance_km + 'km'}</span>
-            <div class="mt-1">
+            <span class="text-xs font-mono font-black text-cyan-400">${v.distance_meters < 1000 ? v.distance_meters + 'm' : v.distance_km + 'km'}</span>
+            <div class="mt-0.5">
               <button onclick="assignVolunteer(${selectedSosId}, ${v.volunteer_id})" class="px-2 py-0.5 bg-emerald-600/30 hover:bg-emerald-600 text-emerald-300 hover:text-white rounded text-[10px] border border-emerald-500/40 transition">
                 Assign
               </button>
@@ -480,34 +1388,186 @@
       `).join('');
     }
 
-    // Assign Volunteer to SOS
+    function renderNearestShelter(s) {
+      const box = document.getElementById('nearestShelterBox');
+      box.innerHTML = `
+        <div class="p-2.5 rounded-xl bg-cyan-950/40 border border-cyan-500/30 text-xs">
+          <div class="flex items-center justify-between font-bold text-cyan-300 mb-1">
+            <span class="flex items-center gap-1.5">
+              <i class="fa-solid fa-house-chimney-medical text-cyan-400"></i> ${s.shelter_name}
+            </span>
+            <span class="font-mono text-white text-xs">${s.distance_km} km away</span>
+          </div>
+          <div class="text-[11px] text-slate-300 font-sans">
+            Capacity: <b>${s.capacity} beds</b> | Available: <b class="text-emerald-400">${s.available_slots} slots</b>
+          </div>
+          <div class="text-[10px] text-slate-400 font-mono mt-1 flex items-center justify-between">
+            <span>In Charge: ${s.contact_person || 'N/A'} (${s.contact_phone || 'N/A'})</span>
+            <span class="text-emerald-300">${s.has_medical_facility ? 'Medical Ready' : 'Shelter Only'}</span>
+          </div>
+        </div>
+      `;
+    }
+
     async function assignVolunteer(sosId, volId) {
       try {
+        const startTime = performance.now();
         const res = await fetch(`${API_BASE}/api/sos/${sosId}/assign`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ volunteer_id: volId })
         });
         const json = await res.json();
+        const latency = (performance.now() - startTime).toFixed(1);
+
         if (json.success) {
-          alert(`Volunteer #${volId} successfully assigned!`);
+          logSqlQuery(
+            'TRIGGER FIRED: ASSIGN VOLUNTEER',
+            `-- 1. Volunteer assigned in table 'volunteers'\nUPDATE volunteers SET assigned_rescue_id = ${sosId}, status = 'BUSY' WHERE id = ${volId};\n\n-- 2. AUTOMATIC DATABASE TRIGGER FIRED: trg_auto_update_sos_on_volunteer_assign\n-- Automatically sets sos_requests.status = 'ASSIGNED' WHERE id = ${sosId};`,
+            'MySQL Trigger & State Synchronization',
+            `Assigned in ${latency}ms | Status synchronized via Trigger`
+          );
+
+          alert(`Volunteer #${volId} successfully assigned! Database trigger synchronized SOS status to ASSIGNED.`);
           refreshAllData();
         } else {
-          alert(`Failed: ${json.message}`);
+          alert(`Assignment failed: ${json.message}`);
         }
       } catch (err) {
         alert('Server error while assigning volunteer.');
       }
     }
 
-    // 2. Fetch Volunteers Fleet
+    // -------------------------------------------------------------------------
+    // 4. EVACUATION SHELTERS
+    // -------------------------------------------------------------------------
+    async function fetchShelters() {
+      try {
+        const res = await fetch(`${API_BASE}/api/shelters`);
+        const json = await res.json();
+        if (json.success) {
+          allShelters = json.data;
+          document.getElementById('totalShelterCount').innerText = allShelters.filter(s => s.status === 'OPEN').length;
+          
+          let totalCap = 0;
+          let totalOcc = 0;
+          allShelters.forEach(s => {
+            totalCap += s.capacity;
+            totalOcc += s.current_occupancy;
+          });
+
+          document.getElementById('statTotalShelters').innerText = `${allShelters.length} Centers`;
+          document.getElementById('statTotalCapacity').innerText = `${totalCap} Beds`;
+          document.getElementById('statTotalOccupancy').innerText = `${totalOcc} Evacuees`;
+          document.getElementById('statAvailableSlots').innerText = `${totalCap - totalOcc} Slots`;
+
+          renderShelters();
+          renderMapMarkers();
+        }
+      } catch (err) {
+        console.error('Failed to load shelters:', err);
+      }
+    }
+
+    function renderShelters() {
+      const container = document.getElementById('sheltersCardsContainer');
+      if (allShelters.length === 0) {
+        container.innerHTML = '<div class="text-center py-12 text-xs text-slate-500 col-span-3">No evacuation shelters recorded.</div>';
+        return;
+      }
+
+      container.innerHTML = allShelters.map(s => {
+        const statusBadge = s.status === 'OPEN' 
+          ? '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">OPEN</span>'
+          : s.status === 'FULL'
+          ? '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">AT CAPACITY</span>'
+          : '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-700 text-slate-300">CLOSED</span>';
+
+        const occPercent = Math.min(100, Math.round((s.current_occupancy / s.capacity) * 100));
+
+        return `
+          <div class="glass-card p-3.5 rounded-xl border border-slate-700/70 flex flex-col justify-between">
+            <div>
+              <div class="flex items-start justify-between gap-2 mb-2">
+                <span class="font-bold text-white text-xs flex items-center gap-1.5">
+                  <i class="fa-solid fa-house-chimney-medical text-cyan-400"></i> ${s.name}
+                </span>
+                ${statusBadge}
+              </div>
+
+              <!-- Occupancy Bar -->
+              <div class="mt-2">
+                <div class="flex items-center justify-between text-[11px] font-mono mb-1">
+                  <span class="text-slate-400">Occupancy: <b>${s.current_occupancy} / ${s.capacity}</b></span>
+                  <span class="text-cyan-400 font-bold">${occPercent}%</span>
+                </div>
+                <div class="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800">
+                  <div class="bg-gradient-to-r from-cyan-500 to-amber-500 h-2 rounded-full" style="width: ${occPercent}%"></div>
+                </div>
+              </div>
+
+              <div class="mt-3 text-[11px] text-slate-300 space-y-1 font-sans">
+                <div><i class="fa-solid fa-user-tie text-slate-500 mr-1.5"></i>In Charge: <b>${s.contact_person || 'N/A'}</b></div>
+                <div class="font-mono text-slate-400"><i class="fa-solid fa-phone text-slate-500 mr-1.5"></i>${s.contact_phone || 'N/A'}</div>
+                <div class="text-[10px] text-emerald-400">
+                  ${s.has_medical_facility ? '<i class="fa-solid fa-suitcase-medical mr-1"></i> Medical Triage Ready' : '<i class="fa-solid fa-bed mr-1"></i> Basic Shelter Only'}
+                </div>
+              </div>
+            </div>
+
+            <!-- Controls: Adjust Occupancy -->
+            <div class="mt-4 pt-2.5 border-t border-slate-800 flex items-center justify-between text-xs">
+              <button onclick="focusOnMapCoords(${s.latitude}, ${s.longitude}, '${s.name}')" class="text-cyan-400 hover:text-cyan-300 font-bold flex items-center gap-1 text-[11px]">
+                <i class="fa-solid fa-location-dot"></i> View on Map
+              </button>
+              <div class="flex items-center gap-1.5 font-mono">
+                <button onclick="adjustShelterOccupancy(${s.id}, -10)" class="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700" title="Discharge 10 evacuees">-10</button>
+                <button onclick="adjustShelterOccupancy(${s.id}, 10)" class="px-2 py-0.5 bg-cyan-600/30 hover:bg-cyan-600 text-cyan-300 hover:text-white rounded border border-cyan-500/40" title="Admit 10 evacuees">+10</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function adjustShelterOccupancy(shelterId, delta) {
+      try {
+        const res = await fetch(`${API_BASE}/api/shelters/${shelterId}/occupancy`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ occupancy_delta: delta })
+        });
+        const json = await res.json();
+        if (json.success) {
+          logSqlQuery(
+            'UPDATE SHELTER OCCUPANCY (CHECK CONSTRAINT)',
+            `UPDATE evacuation_shelters\nSET current_occupancy = current_occupancy + ${delta}\nWHERE id = ${shelterId} AND current_occupancy + ${delta} <= capacity;`,
+            'MySQL CHECK Constraint (chk_occupancy)',
+            `Updated to ${json.current_occupancy}/${json.capacity}`
+          );
+          fetchShelters();
+        } else {
+          alert(json.message);
+        }
+      } catch (err) {
+        alert('Server error updating shelter occupancy.');
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // 5. VOLUNTEER FLEET & RESCUE MANAGEMENT
+    // -------------------------------------------------------------------------
     async function fetchVolunteers() {
       try {
-        const res = await fetch(`${API_BASE}/api/volunteers`);
+        const filterStatus = document.getElementById('filterVolStatus') ? document.getElementById('filterVolStatus').value : '';
+        const url = filterStatus ? `${API_BASE}/api/volunteers?status=${filterStatus}` : `${API_BASE}/api/volunteers`;
+        
+        const res = await fetch(url);
         const json = await res.json();
         if (json.success) {
           allVolunteers = json.data;
           document.getElementById('totalVolCount').innerText = allVolunteers.filter(v => v.status === 'AVAILABLE').length;
+          renderVolunteersFleet();
           renderMapMarkers();
           populateDispatchSelects();
         }
@@ -516,60 +1576,122 @@
       }
     }
 
-    // 3. Render Markers on Leaflet Map
-    function renderMapMarkers() {
-      currentMarkers.forEach(m => map.removeLayer(m));
-      currentMarkers = [];
+    function renderVolunteersFleet() {
+      const container = document.getElementById('volunteersFleetGrid');
+      if (!container) return;
 
-      // Render SOS Markers (Red Pins)
-      allSos.forEach(sos => {
-        if (!sos.latitude || !sos.longitude) return;
-        const icon = L.divIcon({
-          className: 'custom-sos-icon',
-          iconSize: [16, 16],
-          iconAnchor: [8, 8]
-        });
-        const marker = L.marker([sos.latitude, sos.longitude], { icon })
-          .addTo(map)
-          .bindPopup(`
-            <div class="text-slate-900 text-xs p-1">
-              <div class="font-bold text-red-600 flex items-center gap-1">
-                <i class="fa-solid fa-triangle-exclamation"></i> SOS #${sos.id} (${sos.urgency_level})
-              </div>
-              <div class="font-semibold text-slate-800 mt-1">${sos.victim_name || 'Victim'}</div>
-              <div class="text-slate-600 text-[11px] mt-0.5">${sos.details}</div>
-              <div class="mt-2 pt-1 border-t border-slate-200 text-[10px] text-slate-500">Status: <b>${sos.status}</b></div>
-            </div>
-          `);
-        marker.on('click', () => selectSos(sos.id));
-        currentMarkers.push(marker);
-      });
+      if (allVolunteers.length === 0) {
+        container.innerHTML = '<div class="text-center py-12 text-xs text-slate-500 col-span-3">No volunteers registered.</div>';
+        return;
+      }
 
-      // Render Volunteer Markers (Green Pins)
-      allVolunteers.forEach(v => {
-        if (!v.latitude || !v.longitude) return;
-        const icon = L.divIcon({
-          className: 'custom-vol-icon',
-          iconSize: [14, 14],
-          iconAnchor: [7, 7]
-        });
-        const marker = L.marker([v.latitude, v.longitude], { icon })
-          .addTo(map)
-          .bindPopup(`
-            <div class="text-slate-900 text-xs p-1">
-              <div class="font-bold text-emerald-600 flex items-center gap-1">
-                <i class="fa-solid fa-shield-heart"></i> Volunteer #${v.id}
-              </div>
-              <div class="font-semibold text-slate-800 mt-1">${v.name}</div>
-              <div class="text-slate-600 text-[11px]">${v.phone}</div>
-              <div class="mt-1 text-[10px] text-slate-500">Status: <b>${v.status}</b></div>
+      container.innerHTML = allVolunteers.map(v => {
+        const statusBadge = v.status === 'AVAILABLE'
+          ? '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">AVAILABLE</span>'
+          : v.status === 'BUSY'
+          ? '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">ON RESCUE MISSION</span>'
+          : '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-700 text-slate-400">OFFLINE</span>';
+
+        const missionCard = v.assigned_rescue_id ? `
+          <div class="mt-2.5 p-2 bg-slate-950/80 rounded-lg border border-amber-500/30 text-xs">
+            <div class="flex items-center justify-between text-[11px] font-bold text-amber-300">
+              <span><i class="fa-solid fa-triangle-exclamation text-red-400 mr-1"></i>SOS #${v.assigned_rescue_id} (${v.assigned_sos_urgency})</span>
+              <span class="text-[10px] text-slate-400">${v.assigned_victim_name || 'Victim'}</span>
             </div>
-          `);
-        currentMarkers.push(marker);
-      });
+            <p class="text-[10px] text-slate-300 mt-1 line-clamp-1">${v.assigned_sos_details || 'Emergency rescue mission'}</p>
+            <div class="mt-2">
+              <button onclick="completeRescueMission(${v.id})" class="w-full py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded text-[11px] shadow transition flex items-center justify-center gap-1.5">
+                <i class="fa-solid fa-circle-check"></i> Mark Rescue Completed (RESOLVED)
+              </button>
+            </div>
+          </div>
+        ` : '';
+
+        return `
+          <div class="glass-card p-3.5 rounded-xl border border-slate-700/70 flex flex-col justify-between">
+            <div>
+              <div class="flex items-start justify-between gap-2 mb-2">
+                <div>
+                  <span class="font-bold text-white text-xs flex items-center gap-1.5">
+                    <i class="fa-solid fa-shield-heart text-emerald-400"></i> ${v.name}
+                  </span>
+                  <div class="text-[10px] text-slate-400 font-mono mt-0.5">${v.phone}</div>
+                </div>
+                ${statusBadge}
+              </div>
+
+              <div class="mt-2 space-y-1 text-[11px] text-slate-300 font-sans">
+                <div><i class="fa-solid fa-ship text-cyan-400 mr-1.5"></i>Vehicle: <b>${v.vehicle_type || 'Rescue Inflatable Boat'}</b></div>
+                <div><i class="fa-solid fa-user-graduate text-slate-400 mr-1.5"></i>Skills: <b>${v.skills || 'First Aid, Swimming'}</b></div>
+                <div class="font-mono text-[10px] text-slate-400"><i class="fa-solid fa-droplet text-red-400 mr-1.5"></i>Blood Group: <b>${v.blood_group || 'O+'}</b></div>
+              </div>
+
+              ${missionCard}
+            </div>
+
+            <div class="mt-4 pt-2.5 border-t border-slate-800 flex items-center justify-between text-xs">
+              <span class="text-[10px] text-slate-500 font-mono">Status Toggle:</span>
+              <div class="flex items-center gap-1 font-mono text-[10px]">
+                <button onclick="toggleVolunteerStatus(${v.id}, 'AVAILABLE')" class="px-2 py-0.5 rounded bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/30">Available</button>
+                <button onclick="toggleVolunteerStatus(${v.id}, 'OFFLINE')" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white border border-slate-700">Offline</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
     }
 
-    // 4. Fetch Relief Inventory
+    async function toggleVolunteerStatus(volId, newStatus) {
+      try {
+        const res = await fetch(`${API_BASE}/api/volunteers/${volId}/status`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: newStatus })
+        });
+        const json = await res.json();
+        if (json.success) {
+          logSqlQuery(
+            'UPDATE VOLUNTEER STATUS',
+            `UPDATE volunteers SET status = '${newStatus}' WHERE id = ${volId};`,
+            'MySQL Fleet State Management',
+            `Status updated to ${newStatus}`
+          );
+          fetchVolunteers();
+        } else {
+          alert(json.message);
+        }
+      } catch (err) {
+        alert('Server error updating volunteer status.');
+      }
+    }
+
+    async function completeRescueMission(volId) {
+      try {
+        const res = await fetch(`${API_BASE}/api/volunteers/${volId}/complete-mission`, {
+          method: 'POST'
+        });
+        const json = await res.json();
+        if (json.success) {
+          logSqlQuery(
+            'COMPLETE RESCUE MISSION (TRANSACTION COMMIT)',
+            `START TRANSACTION;\nUPDATE sos_requests SET status = 'RESOLVED', resolved_at = NOW() WHERE id = (SELECT assigned_rescue_id FROM volunteers WHERE id = ${volId});\nUPDATE volunteers SET status = 'AVAILABLE', assigned_rescue_id = NULL WHERE id = ${volId};\nCOMMIT;`,
+            'ACID Mission Resolution & Fleet Release',
+            `Mission #${json.resolved_sos_id} RESOLVED | Volunteer Released`
+          );
+
+          alert(json.message);
+          refreshAllData();
+        } else {
+          alert(json.message);
+        }
+      } catch (err) {
+        alert('Server error completing rescue mission.');
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // 6. INVENTORY, ACID DISPATCH & DONOR CONTRIBUTIONS
+    // -------------------------------------------------------------------------
     async function fetchInventory() {
       try {
         const res = await fetch(`${API_BASE}/api/relief/inventory`);
@@ -587,103 +1709,246 @@
     function renderInventory() {
       const container = document.getElementById('inventoryContainer');
       if (allInventory.length === 0) {
-        container.innerHTML = '<div class="text-center py-4 text-xs text-slate-500">No inventory stocked.</div>';
+        container.innerHTML = '<div class="text-center py-10 text-xs text-slate-500 col-span-2">No inventory stocked.</div>';
         return;
       }
 
-      container.innerHTML = allInventory.map(item => `
-        <div class="glass-card p-2.5 rounded-xl border border-slate-700/60 text-xs">
-          <div class="flex items-center justify-between mb-1">
-            <span class="font-bold text-slate-200">${item.item_name}</span>
-            <span class="font-black text-amber-400 text-sm">${item.quantity}</span>
+      container.innerHTML = allInventory.map(item => {
+        const healthBadge = item.quantity === 0 
+          ? '<span class="text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded text-[10px] font-bold">OUT OF STOCK</span>'
+          : item.quantity < 50 
+          ? '<span class="text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded text-[10px] font-bold">LOW STOCK</span>'
+          : '<span class="text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded text-[10px] font-bold">SUFFICIENT</span>';
+
+        const percent = Math.min(100, Math.round((item.quantity / 300) * 100));
+
+        return `
+          <div class="glass-card p-3 rounded-xl border border-slate-700/60 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <span class="font-bold text-slate-100 text-xs">${item.item_name}</span>
+                ${healthBadge}
+              </div>
+              <div class="text-xl font-black font-mono text-amber-400 mt-1">${item.quantity} <span class="text-xs font-normal text-slate-400">${item.unit || 'units'}</span></div>
+              <div class="w-full bg-slate-900 rounded-full h-1.5 mt-2 overflow-hidden border border-slate-800">
+                <div class="bg-gradient-to-r from-amber-500 to-emerald-500 h-1.5 rounded-full" style="width: ${percent}%"></div>
+              </div>
+            </div>
+            <div class="flex items-center justify-between text-[10px] text-slate-400 font-mono mt-3 pt-2 border-t border-slate-800/80">
+              <span><i class="fa-solid fa-warehouse text-slate-500 mr-1"></i>${item.warehouse_name}</span>
+              <button onclick="quickDispatchItem(${item.id})" class="text-indigo-400 hover:text-indigo-300 font-semibold font-sans">Dispatch →</button>
+            </div>
           </div>
-          <div class="flex items-center justify-between text-[10px] text-slate-400">
-            <span><i class="fa-solid fa-warehouse text-slate-500 mr-1"></i>${item.warehouse_name}</span>
-            <span class="text-emerald-400 font-semibold">${item.quantity > 50 ? 'In Stock' : 'Low Stock'}</span>
-          </div>
-        </div>
-      `).join('');
+        `;
+      }).join('');
     }
 
-    // 5. Fetch Dispatches (Audit Log)
+    function quickDispatchItem(itemId) {
+      openDispatchModal();
+      document.getElementById('dispatchItemId').value = itemId;
+    }
+
     async function fetchDispatches() {
       try {
         const res = await fetch(`${API_BASE}/api/relief/dispatches`);
         const json = await res.json();
         if (json.success) {
-          renderDispatches(json.data || []);
+          allDispatches = json.data || [];
+          renderDispatches();
         }
       } catch (err) {
         console.error('Failed to load dispatches:', err);
       }
     }
 
-    function renderDispatches(dispatches) {
+    function renderDispatches() {
       const container = document.getElementById('dispatchesContainer');
-      if (dispatches.length === 0) {
-        container.innerHTML = '<div class="text-center py-4 text-xs text-slate-500">No aid dispatched yet.</div>';
+      if (allDispatches.length === 0) {
+        container.innerHTML = '<div class="text-center py-12 text-xs text-slate-500">No aid dispatched yet. Click "Dispatch Aid" to test.</div>';
         return;
       }
 
-      container.innerHTML = dispatches.slice(0, 10).map(d => `
-        <div class="p-2 rounded-lg bg-slate-900/60 border border-slate-800 text-[11px]">
-          <div class="flex items-center justify-between text-slate-200 font-medium">
-            <span>${d.item_name}</span>
-            <span class="text-indigo-400 font-bold">-${d.dispatched_qty} pcs</span>
+      container.innerHTML = allDispatches.map(d => {
+        const linkedSosBadge = d.sos_request_id 
+          ? `<span class="px-1.5 py-0.2 rounded bg-red-500/20 text-red-400 border border-red-500/30 text-[9px] font-bold">Target: SOS #${d.sos_request_id} (${d.victim_name || 'Victim'})</span>` 
+          : `<span class="px-1.5 py-0.2 rounded bg-slate-800 text-slate-400 text-[9px]">General Relief</span>`;
+
+        return `
+          <div class="p-2.5 rounded-lg bg-slate-900/90 border border-slate-800 text-xs font-mono">
+            <div class="flex items-center justify-between text-slate-200 font-medium">
+              <span class="font-bold">${d.item_name}</span>
+              <span class="text-indigo-400 font-bold">-${d.dispatched_qty} ${d.unit || 'units'}</span>
+            </div>
+            <div class="flex items-center justify-between text-[11px] text-slate-400 mt-1 font-sans">
+              <span>Team: <b class="text-slate-200">${d.volunteer_name}</b></span>
+              ${linkedSosBadge}
+            </div>
+            <div class="text-[10px] text-slate-500 mt-1 flex items-center justify-between">
+              <span>${new Date(d.dispatch_time).toLocaleString()}</span>
+              <span class="text-emerald-400">Zero Deficit Protected</span>
+            </div>
           </div>
-          <div class="flex items-center justify-between text-[10px] text-slate-500 mt-1">
-            <span>Team: <b>${d.volunteer_name}</b></span>
-            <span>${new Date(d.dispatch_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-          </div>
-        </div>
-      `).join('');
+        `;
+      }).join('');
     }
 
-    // 6. Fetch Disaster Alerts
-    async function fetchAlerts() {
+    async function fetchDonations() {
       try {
-        const res = await fetch(`${API_BASE}/api/alerts`);
+        const res = await fetch(`${API_BASE}/api/relief/donations`);
         const json = await res.json();
-        if (json.success && json.data.length > 0) {
-          const topAlert = json.data[0];
-          document.getElementById('alertHeadline').innerText = `${topAlert.alert_title} (${topAlert.severity})`;
-          document.getElementById('alertSource').innerText = `Source: ${topAlert.source_api}`;
+        if (json.success) {
+          allDonations = json.data || [];
+          document.getElementById('statDonationCount').innerText = `${allDonations.length} Pledges`;
+          renderDonations();
         }
       } catch (err) {
-        console.error('Failed to load alerts:', err);
+        console.error('Failed to load donations:', err);
       }
     }
 
-    // Modals Handling
-    function openSosModal() { document.getElementById('sosModal').classList.remove('hidden'); }
-    function closeSosModal() { document.getElementById('sosModal').classList.add('hidden'); }
-
-    function openDispatchModal() {
-      populateDispatchSelects();
-      document.getElementById('dispatchModal').classList.remove('hidden');
-    }
-    function closeDispatchModal() {
-      document.getElementById('dispatchModal').classList.add('hidden');
-      document.getElementById('dispatchAlertMsg').classList.add('hidden');
-    }
-
-    function populateDispatchSelects() {
-      const teamSelect = document.getElementById('dispatchTeamId');
-      const itemSelect = document.getElementById('dispatchItemId');
-      if (teamSelect && allVolunteers.length > 0) {
-        teamSelect.innerHTML = allVolunteers.map(v => `<option value="${v.id}">Team #${v.id}: ${v.name} (${v.status})</option>`).join('');
+    function renderDonations() {
+      const container = document.getElementById('donationsContainer');
+      if (allDonations.length === 0) {
+        container.innerHTML = '<div class="text-center py-12 text-xs text-slate-500">No public donations recorded yet. Click "Pledge Donation" to add.</div>';
+        return;
       }
-      if (itemSelect && allInventory.length > 0) {
-        itemSelect.innerHTML = allInventory.map(i => `<option value="${i.id}">${i.item_name} (Avail: ${i.quantity})</option>`).join('');
+
+      container.innerHTML = allDonations.map(don => {
+        const statusBadge = don.status === 'APPROVED'
+          ? '<span class="text-emerald-400 bg-emerald-500/20 px-2 py-0.5 rounded text-[10px] font-bold border border-emerald-500/30">APPROVED & STOCKED</span>'
+          : '<span class="text-amber-400 bg-amber-500/20 px-2 py-0.5 rounded text-[10px] font-bold border border-amber-500/30">PENDING WAREHOUSE APPROVAL</span>';
+
+        const approveBtn = don.status === 'PENDING'
+          ? `<button onclick="approveDonation(${don.id})" class="mt-2 w-full py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded text-[11px] transition shadow">
+               <i class="fa-solid fa-check mr-1"></i> Admin: Approve & Increment Stock
+             </button>`
+          : '';
+
+        return `
+          <div class="p-2.5 rounded-lg bg-slate-900/90 border border-slate-800 text-xs">
+            <div class="flex items-center justify-between text-slate-200 mb-1">
+              <span class="font-bold text-white">${don.item_name}</span>
+              <span class="text-amber-400 font-mono font-bold">+${don.quantity} ${don.unit || 'units'}</span>
+            </div>
+            <div class="text-[11px] text-slate-400">Donor: <b class="text-slate-300">${don.donor_name}</b> (${don.donor_email})</div>
+            <p class="text-[11px] text-slate-300 mt-1 bg-slate-950 p-1.5 rounded">${don.notes || 'Public relief donation'}</p>
+            <div class="mt-2 flex items-center justify-between text-[10px]">
+              <span class="text-slate-500 font-mono">${new Date(don.created_at).toLocaleDateString()}</span>
+              ${statusBadge}
+            </div>
+            ${approveBtn}
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function approveDonation(donId) {
+      try {
+        const res = await fetch(`${API_BASE}/api/relief/donations/${donId}/approve`, {
+          method: 'PATCH'
+        });
+        const json = await res.json();
+        if (json.success) {
+          logSqlQuery(
+            'TRIGGER/TRANSACTION: APPROVE DONATION',
+            `-- 1. Update Donation Status\nUPDATE relief_donations SET status = 'APPROVED' WHERE id = ${donId};\n\n-- 2. AUTOMATIC TRIGGER / ATOMIC INVENTORY INCREMENT\nUPDATE relief_inventory SET quantity = quantity + (SELECT quantity FROM relief_donations WHERE id = ${donId}) WHERE id = (SELECT item_id FROM relief_donations WHERE id = ${donId});`,
+            'MySQL Trigger / Atomic Restock',
+            `Donation #${donId} Approved | Inventory Incremented`
+          );
+          alert(json.message);
+          fetchDonations();
+          fetchInventory();
+        } else {
+          alert(json.message);
+        }
+      } catch (err) {
+        alert('Error approving donation.');
       }
     }
 
-    // Submit SOS Request
+    // -------------------------------------------------------------------------
+    // 7. ACID TRANSACTION DISPATCH SUBMISSION
+    // -------------------------------------------------------------------------
+    async function handleDispatchSubmit(e) {
+      e.preventDefault();
+      const btn = document.getElementById('btnSubmitDispatch');
+      const alertDiv = document.getElementById('dispatchAlertMsg');
+      btn.disabled = true;
+      btn.innerText = 'Executing ACID Transaction...';
+
+      const teamId = parseInt(document.getElementById('dispatchTeamId').value, 10);
+      const itemId = parseInt(document.getElementById('dispatchItemId').value, 10);
+      const qty = parseInt(document.getElementById('dispatchQty').value, 10);
+      const sosIdVal = document.getElementById('dispatchSosId').value;
+      const sosId = sosIdVal ? parseInt(sosIdVal, 10) : null;
+
+      const payload = {
+        rescue_team_id: teamId,
+        item_id: itemId,
+        quantity: qty,
+        sos_id: sosId
+      };
+
+      const startTime = performance.now();
+
+      try {
+        const res = await fetch(`${API_BASE}/api/relief/dispatch`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const json = await res.json();
+        const latency = (performance.now() - startTime).toFixed(1);
+
+        alertDiv.classList.remove('hidden');
+
+        if (json.success) {
+          alertDiv.className = 'p-2.5 rounded-lg text-[11px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
+          alertDiv.innerHTML = `<i class="fa-solid fa-check-double mr-1"></i><b>ACID Transaction Committed:</b> ${json.message}`;
+
+          logSqlQuery(
+            'ACID TRANSACTION: COMMITTED (LINKED TO SOS)',
+            `START TRANSACTION;\n\n-- Pessimistic Exclusive Row Lock\nSELECT id, item_name, quantity FROM relief_inventory WHERE id = ${itemId} FOR UPDATE;\n\n-- Atomic Stock Deduction & Constraint Verification\nUPDATE relief_inventory SET quantity = quantity - ${qty} WHERE id = ${itemId} AND quantity >= ${qty};\n\n-- Audit Trail Logging (Linked to SOS #${sosId || 'NULL'})\nINSERT INTO relief_dispatches (rescue_team_id, item_id, sos_request_id, quantity, dispatch_time)\nVALUES (${teamId}, ${itemId}, ${sosId || 'NULL'}, ${qty}, NOW());\n\nCOMMIT;`,
+            'ACID Transaction (Atomicity, Consistency, Isolation, Durability)',
+            `Committed in ${latency}ms | Pessimistic Lock Released`
+          );
+
+          setTimeout(() => {
+            closeDispatchModal();
+            fetchInventory();
+            fetchDispatches();
+          }, 1400);
+
+        } else {
+          alertDiv.className = 'p-2.5 rounded-lg text-[11px] bg-rose-500/20 text-rose-300 border border-rose-500/30';
+          alertDiv.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1"></i><b>Transaction Aborted & Rolled Back:</b> ${json.message}`;
+
+          logSqlQuery(
+            'ACID TRANSACTION: ROLLBACK (DEFICIT SAFEGUARD)',
+            `START TRANSACTION;\nSELECT quantity FROM relief_inventory WHERE id = ${itemId} FOR UPDATE;\n\n-- Condition Failed: Requested (${qty}) exceeds Available Stock!\n-- Zero Deficit Guarantee Triggered:\nROLLBACK;\n-- Data remains 100% consistent.`,
+            'ACID Transaction Rollback & Data Integrity',
+            `Rolled back in ${latency}ms | Deficit Safeguard`
+          );
+        }
+
+      } catch (err) {
+        alertDiv.className = 'p-2.5 rounded-lg text-[11px] bg-rose-500/20 text-rose-300 border border-rose-500/30';
+        alertDiv.innerText = 'Connection error with database server.';
+        alertDiv.classList.remove('hidden');
+      } finally {
+        btn.disabled = false;
+        btn.innerText = 'Commit Dispatch';
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // 8. SOS & SHELTER SUBMISSIONS
+    // -------------------------------------------------------------------------
     async function handleSosSubmit(e) {
       e.preventDefault();
       const btn = document.getElementById('btnSubmitSos');
       btn.disabled = true;
-      btn.innerText = 'Transmitting...';
+      btn.innerText = 'Inserting into MySQL...';
 
       const payload = {
         user_id: parseInt(document.getElementById('sosUserId').value, 10),
@@ -693,6 +1958,8 @@
         details: document.getElementById('sosDetails').value
       };
 
+      const startTime = performance.now();
+
       try {
         const res = await fetch(`${API_BASE}/api/sos`, {
           method: 'POST',
@@ -700,12 +1967,22 @@
           body: JSON.stringify(payload)
         });
         const json = await res.json();
+        const latency = (performance.now() - startTime).toFixed(1);
+
         if (json.success) {
+          logSqlQuery(
+            'INSERT SOS REQUEST WITH SPATIAL POINT',
+            `INSERT INTO sos_requests (user_id, latitude, longitude, location, urgency_level, status, details)\nVALUES (${payload.user_id}, ${payload.latitude}, ${payload.longitude}, POINT(${payload.longitude}, ${payload.latitude}), '${payload.urgency_level}', 'PENDING', '${payload.details.replace(/'/g, "''")}');`,
+            'MySQL Spatial POINT & Spatial Index Insertion',
+            `Record inserted (ID: #${json.data.id}) in ${latency}ms`
+          );
+
           closeSosModal();
           await refreshAllData();
+          switchView('radar');
           selectSos(json.data.id);
         } else {
-          alert('Failed: ' + json.message);
+          alert('Submission failed: ' + json.message);
         }
       } catch (err) {
         alert('Server connection error.');
@@ -715,66 +1992,422 @@
       }
     }
 
-    // Submit ACID Relief Dispatch
-    async function handleDispatchSubmit(e) {
+    async function handleDonationSubmit(e) {
       e.preventDefault();
-      const btn = document.getElementById('btnSubmitDispatch');
-      const alertDiv = document.getElementById('dispatchAlertMsg');
+      const btn = document.getElementById('btnSubmitDonation');
+      const alertDiv = document.getElementById('donationAlertMsg');
       btn.disabled = true;
-      btn.innerText = 'Processing Transaction...';
+      btn.innerText = 'Submitting Pledge...';
 
       const payload = {
-        rescue_team_id: parseInt(document.getElementById('dispatchTeamId').value, 10),
-        item_id: parseInt(document.getElementById('dispatchItemId').value, 10),
-        quantity: parseInt(document.getElementById('dispatchQty').value, 10)
+        item_id: parseInt(document.getElementById('donationItemId').value, 10),
+        quantity: parseInt(document.getElementById('donationQty').value, 10),
+        notes: document.getElementById('donationNotes').value
       };
 
       try {
-        const res = await fetch(`${API_BASE}/api/relief/dispatch`, {
+        const res = await fetch(`${API_BASE}/api/relief/donations`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
         const json = await res.json();
+
         alertDiv.classList.remove('hidden');
         if (json.success) {
           alertDiv.className = 'p-2.5 rounded-lg text-[11px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
-          alertDiv.innerText = `Transaction Committed: ${json.message}`;
+          alertDiv.innerHTML = `<i class="fa-solid fa-check mr-1"></i>${json.message}`;
           setTimeout(() => {
-            closeDispatchModal();
-            fetchInventory();
-            fetchDispatches();
+            closeDonationModal();
+            fetchDonations();
           }, 1200);
         } else {
           alertDiv.className = 'p-2.5 rounded-lg text-[11px] bg-rose-500/20 text-rose-300 border border-rose-500/30';
-          alertDiv.innerText = `Rollback: ${json.message}`;
+          alertDiv.innerText = json.message;
         }
       } catch (err) {
         alertDiv.className = 'p-2.5 rounded-lg text-[11px] bg-rose-500/20 text-rose-300 border border-rose-500/30';
-        alertDiv.innerText = 'Failed to connect to backend.';
-        alertDiv.classList.remove('hidden');
+        alertDiv.innerText = 'Server error submitting donation.';
       } finally {
         btn.disabled = false;
-        btn.innerText = 'Commit Dispatch';
+        btn.innerText = 'Submit Donation Pledge';
       }
     }
 
-    // Device GPS
+    async function handleAddShelterSubmit(e) {
+      e.preventDefault();
+      const payload = {
+        name: document.getElementById('newShelterName').value,
+        latitude: parseFloat(document.getElementById('newShelterLat').value),
+        longitude: parseFloat(document.getElementById('newShelterLng').value),
+        capacity: parseInt(document.getElementById('newShelterCapacity').value, 10),
+        has_medical_facility: document.getElementById('newShelterMedical').value === 'true',
+        contact_person: document.getElementById('newShelterPerson').value,
+        contact_phone: document.getElementById('newShelterPhone').value
+      };
+
+      try {
+        const res = await fetch(`${API_BASE}/api/shelters`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const json = await res.json();
+        if (json.success) {
+          logSqlQuery(
+            'INSERT SHELTER WITH SPATIAL POINT',
+            `INSERT INTO evacuation_shelters (name, latitude, longitude, location, capacity, current_occupancy, contact_person, contact_phone, has_medical_facility, status)\nVALUES ('${payload.name.replace(/'/g, "''")}', ${payload.latitude}, ${payload.longitude}, POINT(${payload.longitude}, ${payload.latitude}), ${payload.capacity}, 0, '${payload.contact_person}', '${payload.contact_phone}', ${payload.has_medical_facility ? 1 : 0}, 'OPEN');`,
+            'MySQL Spatial Index & GIS Geometry',
+            `Created Shelter #${json.shelter_id}`
+          );
+          closeAddShelterModal();
+          fetchShelters();
+        } else {
+          alert(json.message);
+        }
+      } catch (err) {
+        alert('Server error creating shelter.');
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // 9. MAP MARKERS RENDERING (SOS, VOLUNTEERS, SHELTERS)
+    // -------------------------------------------------------------------------
+    function renderMapMarkers() {
+      if (!map) return;
+
+      currentSosMarkers.forEach(m => map.removeLayer(m));
+      currentVolMarkers.forEach(m => map.removeLayer(m));
+      currentShelterMarkers.forEach(m => map.removeLayer(m));
+      currentSosMarkers = [];
+      currentVolMarkers = [];
+      currentShelterMarkers = [];
+
+      // 1. SOS Incident Pins
+      allSos.forEach(sos => {
+        if (!sos.latitude || !sos.longitude) return;
+        const icon = L.divIcon({ className: 'custom-sos-icon', iconSize: [16, 16], iconAnchor: [8, 8] });
+        const marker = L.marker([sos.latitude, sos.longitude], { icon })
+          .addTo(map)
+          .bindPopup(`
+            <div class="text-slate-900 text-xs p-1 font-sans">
+              <div class="font-bold text-red-600 flex items-center gap-1">
+                <i class="fa-solid fa-triangle-exclamation"></i> SOS #${sos.id} (${sos.urgency_level})
+              </div>
+              <div class="font-semibold text-slate-800 mt-1">${sos.victim_name || 'Victim'}</div>
+              <div class="text-slate-600 text-[11px] mt-0.5">${sos.details}</div>
+              <div class="mt-2 pt-1 border-t border-slate-200 text-[10px] text-slate-500 font-mono">Status: <b>${sos.status}</b></div>
+            </div>
+          `);
+        marker.on('click', () => selectSos(sos.id));
+        currentSosMarkers.push(marker);
+      });
+
+      // 2. Volunteer Fleet Pins
+      allVolunteers.forEach(v => {
+        if (!v.latitude || !v.longitude) return;
+        const icon = L.divIcon({ className: 'custom-vol-icon', iconSize: [14, 14], iconAnchor: [7, 7] });
+        const marker = L.marker([v.latitude, v.longitude], { icon })
+          .addTo(map)
+          .bindPopup(`
+            <div class="text-slate-900 text-xs p-1 font-sans">
+              <div class="font-bold text-emerald-600 flex items-center gap-1">
+                <i class="fa-solid fa-shield-heart"></i> ${v.name}
+              </div>
+              <div class="text-slate-700 text-[11px]">${v.vehicle_type || 'Rescue Boat'}</div>
+              <div class="text-slate-600 text-[10px] font-mono mt-0.5">${v.phone}</div>
+              <div class="mt-1 text-[10px] text-slate-500 font-mono">Status: <b>${v.status}</b></div>
+            </div>
+          `);
+        currentVolMarkers.push(marker);
+      });
+
+      // 3. Evacuation Shelters Pins
+      allShelters.forEach(s => {
+        if (!s.latitude || !s.longitude) return;
+        const icon = L.divIcon({ 
+          className: 'custom-shelter-icon', 
+          iconSize: [20, 20], 
+          iconAnchor: [10, 10],
+          html: '<i class="fa-solid fa-house-chimney text-[10px]"></i>'
+        });
+        const marker = L.marker([s.latitude, s.longitude], { icon })
+          .addTo(map)
+          .bindPopup(`
+            <div class="text-slate-900 text-xs p-1 font-sans">
+              <div class="font-bold text-cyan-700 flex items-center gap-1">
+                <i class="fa-solid fa-house-chimney-medical"></i> ${s.name}
+              </div>
+              <div class="text-slate-700 text-[11px] mt-1">Available: <b>${s.available_slots} / ${s.capacity} beds</b></div>
+              <div class="text-slate-600 text-[10px] font-mono mt-0.5">Contact: ${s.contact_person || 'N/A'} (${s.contact_phone || 'N/A'})</div>
+              <div class="mt-1 text-[10px] ${s.has_medical_facility ? 'text-emerald-600' : 'text-slate-500'} font-bold">
+                ${s.has_medical_facility ? 'Medical Triage Available' : 'Basic Shelter'}
+              </div>
+            </div>
+          `);
+        currentShelterMarkers.push(marker);
+      });
+    }
+
+    function focusOnMapCoords(lat, lng, label) {
+      switchView('radar');
+      if (map) {
+        map.flyTo([lat, lng], 15, { duration: 1.2 });
+        document.getElementById('activeMapFocusName').innerText = label;
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // 10. ALERTS VIEW & SYNC
+    // -------------------------------------------------------------------------
+    async function fetchAlerts() {
+      try {
+        const res = await fetch(`${API_BASE}/api/alerts`);
+        const json = await res.json();
+        if (json.success) {
+          allAlerts = json.data || [];
+          renderAlerts();
+        }
+      } catch (err) {
+        console.error('Failed to load alerts:', err);
+      }
+    }
+
+    function renderAlerts() {
+      const container = document.getElementById('alertsFullContainer');
+      if (!container) return;
+      if (allAlerts.length === 0) {
+        container.innerHTML = '<div class="text-center py-12 text-xs text-slate-500">No disaster alerts active.</div>';
+        return;
+      }
+
+      container.innerHTML = allAlerts.map(alert => {
+        const badgeColor = alert.severity === 'CRITICAL' ? 'bg-red-500/20 text-red-400 border-red-500/40' :
+          alert.severity === 'HIGH' ? 'bg-orange-500/20 text-orange-400 border-orange-500/40' :
+          'bg-amber-500/20 text-amber-400 border-amber-500/40';
+
+        return `
+          <div class="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 text-xs">
+            <div class="flex items-center justify-between mb-1">
+              <span class="font-bold text-white text-sm flex items-center gap-2">
+                <i class="fa-solid fa-triangle-exclamation text-amber-400"></i> ${alert.alert_title}
+              </span>
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${badgeColor}">${alert.severity}</span>
+            </div>
+            <p class="text-slate-300 text-xs leading-relaxed mt-1 font-sans">${alert.description}</p>
+            <div class="flex items-center justify-between text-[11px] text-slate-500 mt-2 pt-2 border-t border-slate-800/80 font-mono">
+              <span>Source API: <b>${alert.source_api}</b></span>
+              <span>Event Time: ${new Date(alert.event_time).toLocaleString()}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function forceSyncAlerts() {
+      try {
+        const res = await fetch(`${API_BASE}/api/alerts/sync`, { method: 'POST' });
+        const json = await res.json();
+        if (json.success) {
+          alert('Live disaster & flood warning feeds synced successfully.');
+          fetchAlerts();
+        }
+      } catch (err) {
+        alert('Failed to sync alerts.');
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // 11. SQL LOGGER & OBJECT DETAILS (LAB)
+    // -------------------------------------------------------------------------
+    function logSqlQuery(actionName, queryText, conceptName, latencyInfo) {
+      sqlExecutionCount++;
+      const badge = document.getElementById('navDbQueryBadge');
+      if (badge) badge.innerText = sqlExecutionCount;
+      const countLabel = document.getElementById('terminalCountLabel');
+      if (countLabel) countLabel.innerText = `Logged: ${sqlExecutionCount} events`;
+
+      const container = document.getElementById('inspectorTabStream');
+      if (!container) return;
+
+      const timeStr = new Date().toLocaleTimeString();
+      const card = document.createElement('div');
+      card.className = 'p-3 rounded-xl bg-slate-900 border border-slate-800 text-xs font-mono shadow-md';
+      card.innerHTML = `
+        <div class="flex items-center justify-between pb-2 mb-2 border-b border-slate-800 text-[11px]">
+          <span class="font-bold text-cyan-400 flex items-center gap-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
+            ${actionName}
+          </span>
+          <div class="flex items-center gap-2 text-slate-400 text-[10px]">
+            <span class="bg-cyan-500/10 text-cyan-300 px-1.5 py-0.5 rounded border border-cyan-500/20">${conceptName}</span>
+            <span>${timeStr}</span>
+          </div>
+        </div>
+        <pre class="text-[11px] text-slate-200 overflow-x-auto p-2 rounded bg-slate-950/80 border border-slate-800/80 leading-relaxed font-mono">${escapeHtml(queryText)}</pre>
+        <div class="mt-2 flex items-center justify-between text-[10px] text-slate-500">
+          <span>Engine: <b>MySQL 8.0 InnoDB Spatial</b></span>
+          <span class="text-emerald-400 font-bold">${latencyInfo}</span>
+        </div>
+      `;
+
+      if (container.querySelector('.text-center')) {
+        container.innerHTML = '';
+      }
+
+      container.prepend(card);
+    }
+
+    function clearInspectorLogs() {
+      document.getElementById('inspectorTabStream').innerHTML = `
+        <div class="text-slate-500 text-center py-16">
+          <i class="fa-solid fa-terminal text-3xl text-slate-600 mb-3"></i><br>
+          Console cleared. Next queries will stream here in real-time.
+        </div>
+      `;
+      sqlExecutionCount = 0;
+      document.getElementById('navDbQueryBadge').innerText = '0';
+      document.getElementById('terminalCountLabel').innerText = 'Logged: 0 events';
+    }
+
+    function showObjectDetails(type) {
+      switchDbSubTab('stream');
+      const details = {
+        users: { name: 'TABLE: users', query: `CREATE TABLE users (\n  id INT AUTO_INCREMENT PRIMARY KEY,\n  name VARCHAR(255) NOT NULL,\n  email VARCHAR(255) NOT NULL UNIQUE,\n  password_hash VARCHAR(255) NULL,\n  phone VARCHAR(50) NOT NULL,\n  role ENUM('VICTIM', 'VOLUNTEER', 'DONOR', 'ADMIN') DEFAULT 'VICTIM',\n  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n) ENGINE=InnoDB;`, concept: 'Role-Based User Relations' },
+        evacuation_shelters: { name: 'TABLE: evacuation_shelters', query: `CREATE TABLE evacuation_shelters (\n  id INT AUTO_INCREMENT PRIMARY KEY,\n  name VARCHAR(255) NOT NULL,\n  latitude DECIMAL(10, 8) NOT NULL,\n  longitude DECIMAL(11, 8) NOT NULL,\n  location POINT NOT NULL,\n  capacity INT NOT NULL DEFAULT 100,\n  current_occupancy INT NOT NULL DEFAULT 0,\n  contact_person VARCHAR(150),\n  contact_phone VARCHAR(50),\n  has_medical_facility BOOLEAN DEFAULT TRUE,\n  status ENUM('OPEN', 'FULL', 'CLOSED') DEFAULT 'OPEN',\n  SPATIAL INDEX idx_shelter_location (location),\n  CONSTRAINT chk_occupancy CHECK (current_occupancy <= capacity AND current_occupancy >= 0)\n) ENGINE=InnoDB;`, concept: 'MySQL Spatial Point & CHECK Constraint' },
+        sos_requests: { name: 'TABLE: sos_requests', query: `CREATE TABLE sos_requests (\n  id INT AUTO_INCREMENT PRIMARY KEY,\n  user_id INT NOT NULL,\n  latitude DECIMAL(10, 8) NOT NULL,\n  longitude DECIMAL(11, 8) NOT NULL,\n  location POINT NOT NULL,\n  urgency_level ENUM('LOW', 'MEDIUM', 'HIGH', 'CRITICAL') DEFAULT 'MEDIUM',\n  status ENUM('PENDING', 'ASSIGNED', 'IN_PROGRESS', 'RESOLVED') DEFAULT 'PENDING',\n  details TEXT,\n  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n  resolved_at TIMESTAMP NULL,\n  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,\n  SPATIAL INDEX idx_sos_location (location)\n) ENGINE=InnoDB;`, concept: 'Spatial Indexing & Resolution Latency' },
+        volunteers: { name: 'TABLE: volunteers', query: `CREATE TABLE volunteers (\n  id INT AUTO_INCREMENT PRIMARY KEY,\n  user_id INT NOT NULL UNIQUE,\n  status ENUM('AVAILABLE', 'BUSY', 'OFFLINE') DEFAULT 'AVAILABLE',\n  current_location POINT NOT NULL,\n  assigned_rescue_id INT NULL,\n  skills VARCHAR(255) DEFAULT 'First Aid, Swimming',\n  vehicle_type VARCHAR(100) DEFAULT 'Rescue Inflatable Dinghy',\n  blood_group VARCHAR(10) DEFAULT 'O+',\n  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,\n  SPATIAL INDEX idx_volunteer_location (current_location)\n) ENGINE=InnoDB;`, concept: 'Live Fleet Tracking & Capabilities' },
+        relief_inventory: { name: 'TABLE: relief_inventory', query: `CREATE TABLE relief_inventory (\n  id INT AUTO_INCREMENT PRIMARY KEY,\n  item_name VARCHAR(255) NOT NULL,\n  category VARCHAR(100) DEFAULT 'General Aid',\n  unit VARCHAR(50) DEFAULT 'units',\n  quantity INT NOT NULL DEFAULT 0,\n  warehouse_name VARCHAR(255) NOT NULL,\n  CONSTRAINT chk_positive_quantity CHECK (quantity >= 0)\n) ENGINE=InnoDB;`, concept: 'Inventory Domain & CHECK Constraint' },
+        relief_dispatches: { name: 'TABLE: relief_dispatches', query: `CREATE TABLE relief_dispatches (\n  id INT AUTO_INCREMENT PRIMARY KEY,\n  rescue_team_id INT NOT NULL,\n  item_id INT NOT NULL,\n  sos_request_id INT NULL,\n  quantity INT NOT NULL,\n  dispatch_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n  FOREIGN KEY (rescue_team_id) REFERENCES volunteers(id) ON DELETE CASCADE,\n  FOREIGN KEY (item_id) REFERENCES relief_inventory(id) ON DELETE RESTRICT,\n  FOREIGN KEY (sos_request_id) REFERENCES sos_requests(id) ON DELETE SET NULL\n) ENGINE=InnoDB;`, concept: 'Audit Trail & SOS-Linked Dispatches' },
+        relief_donations: { name: 'TABLE: relief_donations', query: `CREATE TABLE relief_donations (\n  id INT AUTO_INCREMENT PRIMARY KEY,\n  donor_id INT NOT NULL,\n  item_id INT NOT NULL,\n  quantity INT NOT NULL,\n  notes TEXT,\n  status ENUM('PENDING', 'APPROVED', 'REJECTED') DEFAULT 'PENDING',\n  FOREIGN KEY (donor_id) REFERENCES users(id) ON DELETE CASCADE\n) ENGINE=InnoDB;`, concept: 'Crowdsourced Donor Submissions' },
+        disaster_alerts: { name: 'TABLE: disaster_alerts', query: `CREATE TABLE disaster_alerts (\n  id INT AUTO_INCREMENT PRIMARY KEY,\n  source_api VARCHAR(100) NOT NULL,\n  alert_title VARCHAR(255) NOT NULL,\n  description TEXT,\n  severity VARCHAR(50) NOT NULL,\n  event_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n) ENGINE=InnoDB;`, concept: 'Automated Cron Data Ingestion' },
+        vw_active: { name: 'VIEW: vw_active_rescue_missions', query: `CREATE OR REPLACE VIEW vw_active_rescue_missions AS\nSELECT s.id AS sos_id, s.urgency_level, s.status AS rescue_status, u_victim.name AS victim_name, u_victim.phone AS victim_phone, s.latitude, s.longitude, v.id AS assigned_volunteer_id, u_vol.name AS volunteer_name, v.vehicle_type, v.skills\nFROM sos_requests s JOIN users u_victim ON s.user_id = u_victim.id\nLEFT JOIN volunteers v ON v.assigned_rescue_id = s.id\nLEFT JOIN users u_vol ON v.user_id = u_vol.id\nWHERE s.status IN ('PENDING', 'ASSIGNED', 'IN_PROGRESS');`, concept: 'Virtual View Analytics' },
+        vw_inventory: { name: 'VIEW: vw_relief_inventory_status', query: `CREATE OR REPLACE VIEW vw_relief_inventory_status AS\nSELECT r.id, r.item_name, r.warehouse_name, r.quantity AS current_stock, COALESCE(SUM(d.quantity), 0) AS total_dispatched, CASE WHEN r.quantity = 0 THEN 'OUT OF STOCK' WHEN r.quantity < 50 THEN 'CRITICAL LOW' ELSE 'SUFFICIENT' END AS stock_health_status\nFROM relief_inventory r LEFT JOIN relief_dispatches d ON r.id = d.item_id\nGROUP BY r.id, r.item_name, r.warehouse_name, r.quantity;`, concept: 'Inventory Health Aggregation' },
+        vw_shelters: { name: 'VIEW: vw_shelters_overview', query: `CREATE OR REPLACE VIEW vw_shelters_overview AS\nSELECT id, name, capacity, current_occupancy, (capacity - current_occupancy) AS available_slots, ROUND((current_occupancy / capacity) * 100, 1) AS occupancy_percentage, has_medical_facility, status\nFROM evacuation_shelters;`, concept: 'Shelters Capacity Overview' },
+        sp_nearest: { name: 'STORED PROCEDURE: sp_find_nearest_volunteers', query: `CREATE PROCEDURE sp_find_nearest_volunteers(IN p_sos_id INT, IN p_max_distance_meters INT)\nBEGIN\n  DECLARE target_location POINT;\n  SELECT location INTO target_location FROM sos_requests WHERE id = p_sos_id;\n  SELECT v.id, u.name, u.phone, v.status, v.skills, v.vehicle_type, ROUND(ST_Distance_Sphere(v.current_location, target_location), 2) AS distance_meters\n  FROM volunteers v JOIN users u ON v.user_id = u.id\n  WHERE v.status = 'AVAILABLE' AND ST_Distance_Sphere(v.current_location, target_location) <= p_max_distance_meters\n  ORDER BY distance_meters ASC LIMIT 25;\nEND;`, concept: 'GIS Stored Procedure' },
+        sp_shelters: { name: 'STORED PROCEDURE: sp_find_nearest_shelters', query: `CREATE PROCEDURE sp_find_nearest_shelters(IN p_latitude DECIMAL(10, 8), IN p_longitude DECIMAL(11, 8), IN p_max_distance_meters INT)\nBEGIN\n  DECLARE origin_location POINT;\n  SET origin_location = POINT(p_longitude, p_latitude);\n  SELECT s.id, s.name, s.capacity, s.current_occupancy, (s.capacity - s.current_occupancy) AS available_slots, ROUND(ST_Distance_Sphere(s.location, origin_location) / 1000, 2) AS distance_km\n  FROM evacuation_shelters s WHERE s.status != 'CLOSED' AND ST_Distance_Sphere(s.location, origin_location) <= p_max_distance_meters\n  ORDER BY distance_km ASC LIMIT 20;\nEND;`, concept: 'Spatial Shelter Stored Procedure' },
+        sp_dispatch: { name: 'STORED PROCEDURE: sp_dispatch_relief_acid', query: `CREATE PROCEDURE sp_dispatch_relief_acid(IN p_team_id INT, IN p_item_id INT, IN p_qty INT, IN p_sos_id INT, OUT p_code INT, OUT p_msg VARCHAR(255))\nBEGIN\n  DECLARE v_stock INT DEFAULT 0;\n  DECLARE EXIT HANDLER FOR SQLEXCEPTION BEGIN ROLLBACK; SET p_code=500; END;\n  START TRANSACTION;\n  SELECT quantity INTO v_stock FROM relief_inventory WHERE id = p_item_id FOR UPDATE;\n  IF v_stock < p_qty THEN ROLLBACK; SET p_code=400; ELSE\n    UPDATE relief_inventory SET quantity = quantity - p_qty WHERE id = p_item_id;\n    INSERT INTO relief_dispatches (rescue_team_id, item_id, sos_request_id, quantity) VALUES (p_team_id, p_item_id, p_sos_id, p_qty);\n    COMMIT; SET p_code=200;\n  END IF;\nEND;`, concept: 'ACID Stored Procedure with Rollback' },
+        trg_assign: { name: 'TRIGGER: trg_auto_update_sos_on_volunteer_assign', query: `CREATE TRIGGER trg_auto_update_sos_on_volunteer_assign\nAFTER UPDATE ON volunteers FOR EACH ROW\nBEGIN\n  IF NEW.assigned_rescue_id IS NOT NULL AND (OLD.assigned_rescue_id IS NULL OR OLD.assigned_rescue_id != NEW.assigned_rescue_id) THEN\n    UPDATE sos_requests SET status = 'ASSIGNED' WHERE id = NEW.assigned_rescue_id AND status = 'PENDING';\n  END IF;\nEND;`, concept: 'State-Syncing Volunteer Trigger' },
+        trg_donation: { name: 'TRIGGER: trg_increase_inventory_on_donation_approved', query: `CREATE TRIGGER trg_increase_inventory_on_donation_approved\nAFTER UPDATE ON relief_donations FOR EACH ROW\nBEGIN\n  IF NEW.status = 'APPROVED' AND OLD.status != 'APPROVED' THEN\n    UPDATE relief_inventory SET quantity = quantity + NEW.quantity WHERE id = NEW.item_id;\n  END IF;\nEND;`, concept: 'Automated Stock Restocking Trigger' }
+      }[type];
+
+      if (details) {
+        logSqlQuery(`INSPECT DDL: ${details.name}`, details.query, details.concept, 'Schema Definition');
+      }
+    }
+
+    function escapeHtml(string) {
+      return String(string)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    // -------------------------------------------------------------------------
+    // 12. ROLE SWITCHER & MODALS
+    // -------------------------------------------------------------------------
+    function toggleRoleDropdown() {
+      document.getElementById('roleDropdownMenu').classList.toggle('hidden');
+    }
+
+    function switchActiveUser(roleKey) {
+      document.getElementById('roleDropdownMenu').classList.add('hidden');
+      const roleMap = {
+        admin: { name: 'Central Admin', role: 'ADMIN', id: 6 },
+        volunteer: { name: 'Tanvir Ahmed', role: 'VOLUNTEER', id: 3 },
+        victim: { name: 'Rafiqul Islam', role: 'VICTIM', id: 1 },
+        donor: { name: 'Shahidul Alam', role: 'DONOR', id: 7 }
+      }[roleKey];
+
+      currentRole = roleMap.role;
+      document.getElementById('currentRoleLabel').innerText = `Role: ${roleMap.role} (${roleMap.name})`;
+      document.getElementById('sosUserId').value = roleMap.id;
+
+      alert(`Switched active session to: ${roleMap.name} [${roleMap.role}]`);
+    }
+
+    // Modals
+    function openSosModal() { document.getElementById('sosModal').classList.remove('hidden'); }
+    function closeSosModal() { document.getElementById('sosModal').classList.add('hidden'); }
+
+    function openDispatchModal() {
+      populateDispatchSelects();
+      populateDispatchSosSelect();
+      document.getElementById('dispatchModal').classList.remove('hidden');
+    }
+    function closeDispatchModal() {
+      document.getElementById('dispatchModal').classList.add('hidden');
+      document.getElementById('dispatchAlertMsg').classList.add('hidden');
+    }
+
+    function openDonationModal() {
+      const itemSelect = document.getElementById('donationItemId');
+      if (itemSelect && allInventory.length > 0) {
+        itemSelect.innerHTML = allInventory.map(i => `<option value="${i.id}">${i.item_name} (${i.warehouse_name})</option>`).join('');
+      }
+      document.getElementById('donationModal').classList.remove('hidden');
+    }
+    function closeDonationModal() {
+      document.getElementById('donationModal').classList.add('hidden');
+      document.getElementById('donationAlertMsg').classList.add('hidden');
+    }
+
+    function openAddShelterModal() { document.getElementById('addShelterModal').classList.remove('hidden'); }
+    function closeAddShelterModal() { document.getElementById('addShelterModal').classList.add('hidden'); }
+
+    function populateDispatchSelects() {
+      const teamSelect = document.getElementById('dispatchTeamId');
+      const itemSelect = document.getElementById('dispatchItemId');
+      if (teamSelect && allVolunteers.length > 0) {
+        teamSelect.innerHTML = allVolunteers.map(v => `<option value="${v.id}">Team #${v.id}: ${v.name} (${v.status} - ${v.vehicle_type || 'Boat'})</option>`).join('');
+      }
+      if (itemSelect && allInventory.length > 0) {
+        itemSelect.innerHTML = allInventory.map(i => `<option value="${i.id}">${i.item_name} (Avail: ${i.quantity} ${i.unit || 'units'})</option>`).join('');
+      }
+    }
+
+    function populateDispatchSosSelect() {
+      const sosSelect = document.getElementById('dispatchSosId');
+      if (sosSelect && allSos.length > 0) {
+        sosSelect.innerHTML = `<option value="">General Distribution (No Specific SOS)</option>` + 
+          allSos.filter(s => s.status !== 'RESOLVED').map(s => `<option value="${s.id}">SOS #${s.id}: ${s.victim_name || 'Victim'} (${s.urgency_level} - ${s.details ? s.details.slice(0, 30) + '...' : ''})</option>`).join('');
+      }
+    }
+
     function useCurrentLocation() {
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(pos => {
           document.getElementById('sosLat').value = pos.coords.latitude.toFixed(6);
           document.getElementById('sosLng').value = pos.coords.longitude.toFixed(6);
-        }, () => alert('Unable to retrieve GPS coordinates.'));
+        }, () => alert('Unable to retrieve device GPS.'));
       } else {
         alert('Geolocation is not supported by your browser.');
       }
     }
 
-    // Startup
+    window.addEventListener('click', (e) => {
+      const btn = e.target.closest('button');
+      if (!btn || !btn.textContent.includes('Role:')) {
+        const menu = document.getElementById('roleDropdownMenu');
+        if (menu) menu.classList.add('hidden');
+      }
+    });
+
     window.addEventListener('DOMContentLoaded', () => {
       initMap();
       refreshAllData();
+
+      // Detect view from URL path (e.g. /shelters, /logistics, /fleet, /database, /alerts)
+      const path = window.location.pathname.replace('/', '') || 'radar';
+      let initialView = 'radar';
+      if (path === 'shelters') initialView = 'shelters';
+      else if (path === 'logistics') initialView = 'logistics';
+      else if (path === 'fleet' || path === 'volunteers') initialView = 'volunteers';
+      else if (path === 'database' || path === 'lab') initialView = 'database';
+      else if (path === 'alerts') initialView = 'alerts';
+
+      switchView(initialView);
     });
   </script>
 </body>

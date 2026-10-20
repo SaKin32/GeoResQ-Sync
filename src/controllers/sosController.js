@@ -90,7 +90,6 @@ const getNearestVolunteers = async (req, res) => {
     let targetLat, targetLng, sosDetails = null;
 
     if (id) {
-      // Find SOS request coordinates
       const [sosRows] = await pool.execute(
         `SELECT id, user_id, latitude, longitude, urgency_level, status, details, location 
          FROM sos_requests WHERE id = ?`,
@@ -122,8 +121,6 @@ const getNearestVolunteers = async (req, res) => {
     /**
      * GEOSPATIAL QUERY:
      * ST_Distance_Sphere(point1, point2) calculates spherical distance on earth in meters.
-     * v.current_location is stored as POINT(lng, lat).
-     * Filter by status = 'AVAILABLE' and distance <= radiusMeters.
      */
     const query = `
       SELECT 
@@ -133,6 +130,9 @@ const getNearestVolunteers = async (req, res) => {
         u.phone,
         u.email,
         v.status,
+        v.skills,
+        v.vehicle_type,
+        v.blood_group,
         ST_X(v.current_location) AS longitude,
         ST_Y(v.current_location) AS latitude,
         ROUND(ST_Distance_Sphere(v.current_location, POINT(?, ?)), 2) AS distance_meters,
@@ -146,9 +146,9 @@ const getNearestVolunteers = async (req, res) => {
     `;
 
     const [volunteers] = await pool.execute(query, [
-      targetLng, targetLat, // For select distance_meters
-      targetLng, targetLat, // For select distance_km
-      targetLng, targetLat, // For where ST_Distance_Sphere filter
+      targetLng, targetLat,
+      targetLng, targetLat,
+      targetLng, targetLat,
       radiusMeters
     ]);
 
@@ -265,7 +265,7 @@ const assignVolunteerToSos = async (req, res) => {
 };
 
 /**
- * 4. List All SOS Requests
+ * 4. List All SOS Requests (With Assigned Volunteer Details)
  * GET /api/sos
  */
 const getAllSosRequests = async (req, res) => {
@@ -283,10 +283,18 @@ const getAllSosRequests = async (req, res) => {
         s.status, 
         s.details, 
         s.created_at,
+        s.resolved_at,
         ST_X(s.location) AS spatial_lng,
-        ST_Y(s.location) AS spatial_lat
+        ST_Y(s.location) AS spatial_lat,
+        v.id AS assigned_volunteer_id,
+        u_vol.name AS assigned_volunteer_name,
+        u_vol.phone AS assigned_volunteer_phone,
+        v.vehicle_type AS volunteer_vehicle,
+        v.skills AS volunteer_skills
       FROM sos_requests s
       JOIN users u ON s.user_id = u.id
+      LEFT JOIN volunteers v ON v.assigned_rescue_id = s.id
+      LEFT JOIN users u_vol ON v.user_id = u_vol.id
       WHERE 1=1
     `;
     const params = [];
@@ -339,18 +347,22 @@ const updateSosStatus = async (req, res) => {
   try {
     await connection.beginTransaction();
 
-    await connection.execute(
-      'UPDATE sos_requests SET status = ? WHERE id = ?',
-      [status, id]
-    );
-
-    // If resolved, free up the assigned volunteer
     if (status === 'RESOLVED') {
+      await connection.execute(
+        'UPDATE sos_requests SET status = ?, resolved_at = NOW() WHERE id = ?',
+        [status, id]
+      );
+      // Free up assigned volunteer
       await connection.execute(
         `UPDATE volunteers 
          SET status = 'AVAILABLE', assigned_rescue_id = NULL 
          WHERE assigned_rescue_id = ?`,
         [id]
+      );
+    } else {
+      await connection.execute(
+        'UPDATE sos_requests SET status = ? WHERE id = ?',
+        [status, id]
       );
     }
 
@@ -373,10 +385,69 @@ const updateSosStatus = async (req, res) => {
   }
 };
 
+/**
+ * 6. Get Nearest Safe Shelters for a specific SOS Request
+ * GET /api/sos/:id/nearest-shelters?radius=15000
+ */
+const getNearestSheltersForSos = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const radiusMeters = parseInt(req.query.radius, 10) || 15000;
+
+    const [sosRows] = await pool.execute(
+      'SELECT id, latitude, longitude, location FROM sos_requests WHERE id = ?',
+      [id]
+    );
+
+    if (sosRows.length === 0) {
+      return res.status(404).json({ success: false, message: 'SOS Request not found.' });
+    }
+
+    const sos = sosRows[0];
+    const lng = parseFloat(sos.longitude);
+    const lat = parseFloat(sos.latitude);
+
+    const query = `
+      SELECT 
+        s.id AS shelter_id,
+        s.name AS shelter_name,
+        s.latitude,
+        s.longitude,
+        s.capacity,
+        s.current_occupancy,
+        (s.capacity - s.current_occupancy) AS available_slots,
+        s.has_medical_facility,
+        s.status,
+        s.contact_person,
+        s.contact_phone,
+        ROUND(ST_Distance_Sphere(s.location, POINT(?, ?)), 2) AS distance_meters,
+        ROUND(ST_Distance_Sphere(s.location, POINT(?, ?)) / 1000, 2) AS distance_km
+      FROM evacuation_shelters s
+      WHERE s.status != 'CLOSED'
+        AND ST_Distance_Sphere(s.location, POINT(?, ?)) <= ?
+      ORDER BY distance_meters ASC
+      LIMIT 10;
+    `;
+
+    const [shelters] = await pool.execute(query, [lng, lat, lng, lat, lng, lat, radiusMeters]);
+
+    return res.status(200).json({
+      success: true,
+      sos_id: Number(id),
+      search_radius_meters: radiusMeters,
+      total_found: shelters.length,
+      shelters
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 module.exports = {
   createSosRequest,
   getNearestVolunteers,
   assignVolunteerToSos,
   getAllSosRequests,
-  updateSosStatus
+  updateSosStatus,
+  getNearestSheltersForSos
 };
