@@ -86,6 +86,17 @@ Once started, you will see:
 Launch your browser and visit:  
 👉 **`http://localhost:5000`**
 
+### 🌐 6 Dedicated Web Pages Overview
+
+| # | Web Page | Route URL | Purpose & Core Capabilities |
+|---|---|---|---|
+| **1** | **Mission Radar** | [`/`](http://localhost:5000/) or [`/radar`](http://localhost:5000/radar) | Full-screen GIS tactical radar, live incident queue, nearest fleet (5km) and shelters (15km) calculation, watermark-free dark maps. |
+| **2** | **Safe Shelters** | [`/shelters`](http://localhost:5000/shelters) | Capacity tracking, occupancy bars, instant `+10 / -10` headcounts, search & filter, new shelter registration. |
+| **3** | **Logistics & Donations** | [`/logistics`](http://localhost:5000/logistics) | ACID relief dispatch linked to SOS with row locking, public donor pledges, and auto-restock triggers on approval. |
+| **4** | **Fleet Operations** | [`/volunteers`](http://localhost:5000/volunteers) | Rescuer roster, vehicle types (Boats, Trucks, Drones), blood groups, live GPS update, and one-click mission completion (`RESOLVED`). |
+| **5** | **MySQL 8.0 Lab** | [`/lab`](http://localhost:5000/lab) | Database schema breakdown, `ST_Distance_Sphere`, ACID transaction analysis, triggers, views, and exam viva Q&A answers. |
+| **6** | **Disaster Alerts** | [`/alerts`](http://localhost:5000/alerts) | Real-time USGS earthquake feeds, flood warnings, heavy rain bulletins, and emergency broadcast dispatch. |
+
 ---
 
 ## 📡 RESTful API Reference
